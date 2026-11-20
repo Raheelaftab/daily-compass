@@ -312,22 +312,22 @@ Do these in order. One session per run. Stop after each.
 - **Done when:** `npm run build` passes; `db:studio` shows 7 areas and 4 habits.
 
 ### Session 2 — Auth, layout, deploy
-- [ ] `src/lib/auth.ts`, `actions/auth.ts`, login page.
-- [ ] `proxy.ts`/`middleware.ts` route protection.
-- [ ] `(app)/layout.tsx` with sidebar + mobile bottom nav; placeholder pages for all routes.
-- [ ] README with deployment steps.
+- [x] `src/lib/auth.ts`, `actions/auth.ts`, login page.
+- [x] `proxy.ts`/`middleware.ts` route protection.
+- [x] `(app)/layout.tsx` with sidebar + mobile bottom nav; placeholder pages for all routes.
+- [x] README with deployment steps.
 - **Done when:** unauthenticated visit redirects to `/login`; correct login reaches `/`; logout works; developer deploys to Vercel.
 
 ### Session 3 — Tasks
-- [ ] `queries.getTasks`, task actions, Tasks page with filters, sorting, add/edit sheet, status change, delete, overdue styling.
+- [x] `queries.getTasks`, task actions, Tasks page with filters, sorting, add/edit sheet, status change, delete, overdue styling.
 - **Done when:** full task CRUD works on mobile and desktop.
 
 ### Session 4 — Today
-- [ ] Top 3 section with picker (max 3), quick time log, today's log list, today's total.
+- [x] Top 3 section with picker (max 3), quick time log, today's log list, today's total.
 - **Done when:** a task can be added to top 3, completed, and time logged in under 10 seconds on a phone.
 
 ### Session 5 — Habits
-- [ ] Habits page (7-day grid, streaks, add/rename/deactivate) and habit checkboxes on Today.
+- [x] Habits page (7-day grid, streaks, add/rename/deactivate) and habit checkboxes on Today.
 - **Done when:** toggling is instant (optimistic) and streaks are correct.
 
 ### Session 6 — Dashboard

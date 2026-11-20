@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Daily Compass
 
-## Getting Started
+Private, single-user, mobile-first planner for logging work across seven life areas.
 
-First, run the development server:
+## Stack
+
+- Next.js App Router + TypeScript
+- Tailwind CSS + shadcn/ui
+- Neon Postgres + Drizzle ORM
+- Auth: bcryptjs + JWT cookie (`jose`)
+
+## Local setup
+
+1. Clone the repo and install dependencies:
+
+```bash
+npm install
+```
+
+2. Create a **new** Neon project named `daily-compass` (separate from other apps). Copy the **pooled** connection string.
+
+3. Copy env example and fill values:
+
+```bash
+cp .env.example .env.local
+```
+
+```
+DATABASE_URL=            # Neon pooled connection string
+ADMIN_EMAIL=             # the only login email
+ADMIN_PASSWORD_HASH=     # bcrypt hash, cost 12 (wrap in single quotes if it contains $)
+AUTH_SECRET=             # 32+ random bytes, base64
+```
+
+Generate a password hash and auth secret:
+
+```bash
+npx tsx scripts/hash-password.ts "your-password"
+openssl rand -base64 32
+```
+
+> Tip: put `ADMIN_PASSWORD_HASH` in **single quotes** in `.env.local` so `$` characters are not expanded.
+
+4. Migrate and seed:
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+5. Run the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000), sign in, then use the app on phone or laptop.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy (Vercel + Neon)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create the Neon project and note the pooled `DATABASE_URL`.
+2. Locally fill `.env.local`, run `npm run db:migrate` then `npm run db:seed`.
+3. Generate `ADMIN_PASSWORD_HASH` and `AUTH_SECRET` as above.
+4. Push to a **private** GitHub repo.
+5. In Vercel → Import project → add the four env vars (`DATABASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `AUTH_SECRET`) → Deploy.
+6. Open on phone → log in → “Add to Home Screen”.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Next.js dev server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run db:generate` | Generate Drizzle migrations |
+| `npm run db:migrate` | Apply migrations |
+| `npm run db:seed` | Idempotent seed (7 areas, 4 habits) |
+| `npm run db:studio` | Drizzle Studio |

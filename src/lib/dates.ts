@@ -36,3 +36,13 @@ export function formatDisplay(dateStr: string): string {
   const date = TZDate.tz(APP_TIMEZONE, dateStr);
   return format(date, "EEE, MMM d, yyyy");
 }
+
+/** Format minutes as "2h 15m", "45m", or "0m". */
+export function formatMinutes(totalMinutes: number): string {
+  const mins = Math.max(0, Math.round(totalMinutes));
+  const hours = Math.floor(mins / 60);
+  const remainder = mins % 60;
+  if (hours === 0) return `${remainder}m`;
+  if (remainder === 0) return `${hours}h`;
+  return `${hours}h ${remainder}m`;
+}
