@@ -20,6 +20,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 
@@ -98,23 +99,23 @@ export function Top3Section({ today, top3, openTasks }: Top3SectionProps) {
       </div>
 
       {optimisticTop3.length === 0 ? (
-        <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-          No Top 3 yet — pick up to three focus tasks
-        </p>
+        <EmptyState>No Top 3 yet — pick up to three focus tasks</EmptyState>
       ) : (
         <ul className="divide-y rounded-lg border">
           {optimisticTop3.map((task) => {
             const done = task.status === "done";
             return (
               <li key={task.id} className="flex items-start gap-3 px-3 py-3">
-                <Checkbox
-                  checked={done}
-                  className="mt-1 size-5"
-                  aria-label={done ? "Mark incomplete" : "Mark complete"}
-                  onCheckedChange={(checked) => {
-                    completeTask(task, Boolean(checked));
-                  }}
-                />
+                <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center">
+                  <Checkbox
+                    checked={done}
+                    className="size-5"
+                    aria-label={done ? "Mark incomplete" : "Mark complete"}
+                    onCheckedChange={(checked) => {
+                      completeTask(task, Boolean(checked));
+                    }}
+                  />
+                </label>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start gap-2">
                     <span className={areaDotClass(task.areaColor, "mt-1.5")} />
@@ -168,9 +169,9 @@ function Top3Picker({
 
   const body =
     tasks.length === 0 ? (
-      <p className="px-4 py-6 text-center text-sm text-muted-foreground">
+      <EmptyState className="mx-4 border-0">
         No open tasks available to pick
-      </p>
+      </EmptyState>
     ) : (
       <ul className="max-h-[60vh] divide-y overflow-y-auto">
         {tasks.map((task) => {

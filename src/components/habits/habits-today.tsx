@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { toggleHabit } from "@/actions/habits";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { HabitTodayRow } from "@/lib/queries";
 
 type HabitsTodayProps = {
@@ -31,6 +32,10 @@ export function HabitsToday({ today, habits }: HabitsTodayProps) {
         toast.error(result.error);
         return;
       }
+      toast.success(next ? "Habit checked" : "Habit unchecked", {
+        id: "habit-today-toggle",
+        duration: 1500,
+      });
     });
   }
 
@@ -40,9 +45,7 @@ export function HabitsToday({ today, habits }: HabitsTodayProps) {
         <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
           Habits today
         </h2>
-        <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-          No active habits — add some on the Habits page
-        </p>
+        <EmptyState>No active habits — add some on the Habits page</EmptyState>
       </section>
     );
   }
@@ -54,15 +57,17 @@ export function HabitsToday({ today, habits }: HabitsTodayProps) {
       </h2>
       <ul className="divide-y rounded-lg border">
         {optimisticHabits.map((habit) => (
-          <li key={habit.id} className="flex items-center gap-3 px-3 py-2">
-            <Checkbox
-              checked={habit.done}
-              className="size-5"
-              disabled={pending}
-              aria-label={habit.name}
-              onCheckedChange={() => onToggle(habit)}
-            />
-            <span className="min-h-11 flex flex-1 items-center text-sm font-medium">
+          <li key={habit.id} className="flex items-center gap-3 px-3 py-1">
+            <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center">
+              <Checkbox
+                checked={habit.done}
+                className="size-5"
+                disabled={pending}
+                aria-label={habit.name}
+                onCheckedChange={() => onToggle(habit)}
+              />
+            </label>
+            <span className="flex min-h-11 flex-1 items-center text-sm font-medium">
               {habit.name}
             </span>
           </li>

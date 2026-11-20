@@ -27,6 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { HabitGridData, HabitGridRow } from "@/lib/queries";
@@ -87,7 +88,9 @@ export function HabitsView({ data }: HabitsViewProps) {
       const result = await toggleHabit(habitId, date);
       if (!result.ok) {
         toast.error(result.error);
+        return;
       }
+      toast.success("Habit updated", { id: "habit-grid-toggle", duration: 1200 });
     });
   }
 
@@ -124,101 +127,107 @@ export function HabitsView({ data }: HabitsViewProps) {
       </div>
 
       {optimistic.habits.length === 0 ? (
-        <p className="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+        <EmptyState className="py-10">
           No habits yet — add your first one
-        </p>
+        </EmptyState>
       ) : (
-        <div className="space-y-3">
-          {/* Day header */}
-          <div className="grid grid-cols-[minmax(0,1fr)_repeat(7,2rem)] items-center gap-1 px-1 text-[10px] font-medium text-muted-foreground sm:grid-cols-[minmax(0,1.2fr)_repeat(7,2.25rem)_auto]">
-            <span className="sr-only sm:not-sr-only sm:truncate">Habit</span>
-            {optimistic.days.map((day) => (
-              <span
-                key={day.date}
-                className={cn(
-                  "text-center",
-                  day.date === optimistic.today && "text-foreground",
-                )}
-              >
-                {day.label}
-              </span>
-            ))}
-            <span className="hidden text-right sm:block">Streak</span>
-          </div>
+        <div className="-mx-4 space-y-3 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+          <div className="min-w-[22.5rem] space-y-3">
+            <div className="grid grid-cols-[minmax(5.5rem,1fr)_repeat(7,2.25rem)] items-center gap-1 px-1 text-[10px] font-medium text-muted-foreground sm:grid-cols-[minmax(0,1.2fr)_repeat(7,2.25rem)_auto]">
+              <span className="truncate">Habit</span>
+              {optimistic.days.map((day) => (
+                <span
+                  key={day.date}
+                  className={cn(
+                    "text-center",
+                    day.date === optimistic.today && "text-foreground",
+                  )}
+                >
+                  {day.label}
+                </span>
+              ))}
+              <span className="hidden text-right sm:block">Streak</span>
+            </div>
 
-          <ul className="space-y-2">
-            {optimistic.habits.map((habit) => (
-              <li
-                key={habit.id}
-                className="rounded-lg border px-2 py-2 sm:px-3"
-              >
-                <div className="grid grid-cols-[minmax(0,1fr)_repeat(7,2rem)] items-center gap-1 sm:grid-cols-[minmax(0,1.2fr)_repeat(7,2.25rem)_auto]">
-                  <div className="flex min-w-0 items-center gap-1 pr-1">
-                    <p className="truncate text-sm font-medium">{habit.name}</p>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-9 shrink-0"
-                            aria-label={`${habit.name} actions`}
-                          >
-                            <MoreHorizontal className="size-4" />
-                          </Button>
-                        }
-                      />
-                      <DropdownMenuContent align="start" className="min-w-40">
-                        <DropdownMenuItem
-                          className="min-h-11"
-                          onClick={() => setRenameHabit(habit)}
-                        >
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="min-h-11"
-                          variant="destructive"
-                          onClick={() => onDeactivate(habit)}
-                        >
-                          Deactivate
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  {optimistic.days.map((day) => {
-                    const done = habit.checks[day.date] === true;
-                    return (
-                      <div key={day.date} className="flex justify-center">
-                        <Checkbox
-                          checked={done}
-                          className="size-5"
-                          disabled={pending}
-                          aria-label={`${habit.name} ${day.label}`}
-                          onCheckedChange={() =>
-                            onToggleCell(habit.id, day.date)
+            <ul className="space-y-2">
+              {optimistic.habits.map((habit) => (
+                <li
+                  key={habit.id}
+                  className="rounded-lg border px-2 py-2 sm:px-3"
+                >
+                  <div className="grid grid-cols-[minmax(5.5rem,1fr)_repeat(7,2.25rem)] items-center gap-1 sm:grid-cols-[minmax(0,1.2fr)_repeat(7,2.25rem)_auto]">
+                    <div className="flex min-w-0 items-center gap-1 pr-1">
+                      <p className="truncate text-sm font-medium">
+                        {habit.name}
+                      </p>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-11 shrink-0"
+                              aria-label={`${habit.name} actions`}
+                            >
+                              <MoreHorizontal className="size-4" />
+                            </Button>
                           }
                         />
-                      </div>
-                    );
-                  })}
+                        <DropdownMenuContent align="start" className="min-w-40">
+                          <DropdownMenuItem
+                            className="min-h-11"
+                            onClick={() => setRenameHabit(habit)}
+                          >
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="min-h-11"
+                            variant="destructive"
+                            onClick={() => onDeactivate(habit)}
+                          >
+                            Deactivate
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
 
-                  <div className="col-span-8 mt-1 flex justify-between text-xs text-muted-foreground sm:col-span-1 sm:mt-0 sm:block sm:text-right">
-                    <span>
-                      Now {habit.currentStreak}
-                      <span className="sm:hidden">
-                        {" "}
-                        · Best {habit.bestStreak}
+                    {optimistic.days.map((day) => {
+                      const done = habit.checks[day.date] === true;
+                      return (
+                        <div
+                          key={day.date}
+                          className="flex min-h-11 items-center justify-center"
+                        >
+                          <Checkbox
+                            checked={done}
+                            className="size-5"
+                            disabled={pending}
+                            aria-label={`${habit.name} ${day.label}`}
+                            onCheckedChange={() =>
+                              onToggleCell(habit.id, day.date)
+                            }
+                          />
+                        </div>
+                      );
+                    })}
+
+                    <div className="col-span-8 mt-1 flex justify-between text-xs text-muted-foreground sm:col-span-1 sm:mt-0 sm:block sm:text-right">
+                      <span>
+                        Now {habit.currentStreak}
+                        <span className="sm:hidden">
+                          {" "}
+                          · Best {habit.bestStreak}
+                        </span>
                       </span>
-                    </span>
-                    <span className="hidden sm:block">
-                      Best {habit.bestStreak}
-                    </span>
+                      <span className="hidden sm:block">
+                        Best {habit.bestStreak}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
 

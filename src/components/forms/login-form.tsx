@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 import { login, type LoginState } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,14 @@ const initialState: LoginState = {};
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, initialState);
+  const lastError = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (state.error && state.error !== lastError.current) {
+      lastError.current = state.error;
+      toast.error(state.error);
+    }
+  }, [state.error]);
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-4">

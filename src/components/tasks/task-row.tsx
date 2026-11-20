@@ -86,14 +86,16 @@ export function TaskRow({ task, today, onEdit }: TaskRowProps) {
         pending && "opacity-70",
       )}
     >
-      <Checkbox
-        checked={isDone}
-        className="mt-1 size-5"
-        aria-label={isDone ? "Mark incomplete" : "Mark complete"}
-        onCheckedChange={(checked) => {
-          runStatus(checked ? "done" : "todo");
-        }}
-      />
+      <label className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center">
+        <Checkbox
+          checked={isDone}
+          className="size-5"
+          aria-label={isDone ? "Mark incomplete" : "Mark complete"}
+          onCheckedChange={(checked) => {
+            runStatus(checked ? "done" : "todo");
+          }}
+        />
+      </label>
 
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start gap-2">

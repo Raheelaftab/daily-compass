@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { TaskFormDialog } from "@/components/tasks/task-form-dialog";
 import { TaskRow } from "@/components/tasks/task-row";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
   SelectContent,
@@ -123,9 +124,9 @@ export function TasksView({
       </div>
 
       {tasks.length === 0 ? (
-        <p className="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+        <EmptyState className="py-10">
           No tasks yet — add your first one
-        </p>
+        </EmptyState>
       ) : (
         <ul className="rounded-lg border px-3">
           {tasks.map((task) => (

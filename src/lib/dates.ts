@@ -46,3 +46,27 @@ export function formatMinutes(totalMinutes: number): string {
   if (remainder === 0) return `${hours}h`;
   return `${hours}h ${remainder}m`;
 }
+
+/** Convert minutes to hours (one decimal). */
+export function minutesToHours(minutes: number): number {
+  return Math.round((minutes / 60) * 10) / 10;
+}
+
+/**
+ * Days elapsed in a Mon–Sun week for habit rate:
+ * 0 if today is before the week; 7 if week is fully past;
+ * otherwise Mon..today inclusive.
+ */
+export function daysElapsedInWeek(weekStartDate: string, today: string): number {
+  const end = weekEnd(weekStartDate);
+  if (today < weekStartDate) return 0;
+  if (today > end) return 7;
+
+  let count = 0;
+  let cursor = weekStartDate;
+  while (cursor <= today) {
+    count += 1;
+    cursor = addDays(cursor, 1);
+  }
+  return count;
+}

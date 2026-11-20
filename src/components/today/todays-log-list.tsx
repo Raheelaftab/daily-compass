@@ -9,6 +9,7 @@ import { areaDotClass } from "@/lib/areas";
 import { formatMinutes } from "@/lib/dates";
 import type { TimeLogWithMeta } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type TodaysLogListProps = {
   logs: TimeLogWithMeta[];
@@ -41,9 +42,7 @@ export function TodaysLogList({ logs }: TodaysLogListProps) {
       </h2>
 
       {optimisticLogs.length === 0 ? (
-        <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-          No time logged yet today
-        </p>
+        <EmptyState>No time logged yet today</EmptyState>
       ) : (
         <ul className="divide-y rounded-lg border">
           {optimisticLogs.map((log) => (

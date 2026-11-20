@@ -121,10 +121,24 @@
   * {
     @apply border-border outline-ring/50;
   }
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+  /* Comfortable tap targets on touch devices without breaking dense grids. */
+  @media (pointer: coarse) {
+    button,
+    [role="checkbox"],
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
   }
 }

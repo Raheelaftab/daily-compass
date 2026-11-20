@@ -11,6 +11,17 @@ const AREA_DOT_CLASS: Record<string, string> = {
   yellow: "bg-yellow-500",
 };
 
+/** Hex colors for chart bars (aligned with area color names). */
+const AREA_HEX: Record<string, string> = {
+  purple: "#a855f7",
+  blue: "#3b82f6",
+  teal: "#14b8a6",
+  orange: "#f97316",
+  red: "#ef4444",
+  green: "#22c55e",
+  yellow: "#eab308",
+};
+
 export function areaDotClass(color: string, className?: string): string {
   return cn(
     "inline-block size-2.5 shrink-0 rounded-full",
@@ -18,3 +29,20 @@ export function areaDotClass(color: string, className?: string): string {
     className,
   );
 }
+
+export function areaHex(color: string): string {
+  return AREA_HEX[color] ?? "#737373";
+}
+
+export const AREA_COLOR_OPTIONS = [
+  "purple",
+  "blue",
+  "teal",
+  "orange",
+  "red",
+  "green",
+  "yellow",
+] as const;
+
+export type AreaColorName = (typeof AREA_COLOR_OPTIONS)[number];
+

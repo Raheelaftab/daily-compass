@@ -29,7 +29,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </Suspense>
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileTopBar />
-        <main className="flex-1 px-4 py-4 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:px-6 md:pb-6">
+        <main
+          id="main"
+          className="flex-1 px-4 py-4 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:px-6 md:pb-6"
+        >
           {children}
         </main>
         <Suspense fallback={<MobileNavFallback />}>

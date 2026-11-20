@@ -331,15 +331,15 @@ Do these in order. One session per run. Stop after each.
 - **Done when:** toggling is instant (optimistic) and streaks are correct.
 
 ### Session 6 — Dashboard
-- [ ] `getWeekStats`, `getWeeklyTrend`; all six widgets; week selector.
+- [x] `getWeekStats`, `getWeeklyTrend`; all six widgets; week selector.
 - **Done when:** numbers match the raw data in `db:studio` for a test week.
 
 ### Session 7 — Weekly report & Settings
-- [ ] Report page with all sections and review form; Settings page for areas.
+- [x] Report page with all sections and review form; Settings page for areas.
 - **Done when:** review saves and reloads; changing a target updates the dashboard.
 
 ### Session 8 — Polish
-- [ ] Empty states, skeletons, toasts everywhere, dark mode check, 375px layout check, Lighthouse pass, remove dead code.
+- [x] Empty states, skeletons, toasts everywhere, dark mode check, 375px layout check, Lighthouse pass, remove dead code.
 - **Done when:** developer uses it on his phone for a full day without friction.
 
 ---

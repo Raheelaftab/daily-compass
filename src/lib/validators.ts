@@ -87,3 +87,34 @@ export const toggleHabitSchema = z.object({
 
 export type CreateHabitInput = z.infer<typeof createHabitSchema>;
 export type UpdateHabitInput = z.infer<typeof updateHabitSchema>;
+
+export const saveWeeklyReviewSchema = z.object({
+  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid week"),
+  wins: z.string().max(10000).optional().default(""),
+  slipped: z.string().max(10000).optional().default(""),
+  nextTop3: z.string().max(10000).optional().default(""),
+});
+
+export const updateAreaSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  name: z.string().trim().min(1, "Name is required").max(60),
+  color: z.enum([
+    "purple",
+    "blue",
+    "teal",
+    "orange",
+    "red",
+    "green",
+    "yellow",
+  ]),
+  /** Hours as decimal string/number; empty string → log-only (null minutes). */
+  weeklyTargetHours: z.union([
+    z.literal(""),
+    z.coerce.number().min(0).max(168),
+  ]),
+  isActive: z.boolean(),
+  sortOrder: z.coerce.number().int().min(0).max(999),
+});
+
+export type SaveWeeklyReviewInput = z.infer<typeof saveWeeklyReviewSchema>;
+export type UpdateAreaInput = z.infer<typeof updateAreaSchema>;
