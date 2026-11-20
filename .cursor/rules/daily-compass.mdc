@@ -1,0 +1,13 @@
+---
+description: Daily Compass project rules
+alwaysApply: true
+---
+
+- The full spec is in `DAILY_COMPASS_SPEC.md` at the repo root. Read it before any task and follow it exactly.
+- Work one "Build Session" at a time (spec section 12). After finishing a session: run `npm run build` and `npm run lint`, fix all errors, tick that session's checkboxes in the spec, summarize the changes, then stop and wait.
+- Stack: Next.js App Router + TypeScript (strict), Tailwind + shadcn/ui, Drizzle + Neon, Zod, Recharts, date-fns, jose + bcryptjs.
+- Reads in Server Components via `src/lib/queries.ts`; writes only via Server Actions in `src/actions/`. Every action verifies the session and validates with Zod.
+- All dates use America/New_York and `YYYY-MM-DD` strings via `src/lib/dates.ts`. Weeks start Monday.
+- Mobile-first (375px), touch targets ≥ 44px, light + dark mode.
+- No `any`, no features outside the spec, never commit or log secrets.
+- If something is unclear, ask instead of guessing.
