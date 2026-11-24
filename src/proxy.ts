@@ -21,6 +21,12 @@ async function hasValidSession(request: NextRequest): Promise<boolean> {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // MCP uses Bearer MCP_API_TOKEN; skip cookie session gate.
+  if (pathname === "/api/mcp" || pathname.startsWith("/api/mcp/")) {
+    return NextResponse.next();
+  }
+
   const isLogin = pathname === "/login";
   const loggedIn = await hasValidSession(request);
 
