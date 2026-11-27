@@ -1,6 +1,7 @@
 import { TZDate } from "@date-fns/tz";
 import {
   addDays as dfAddDays,
+  addMonths as dfAddMonths,
   endOfWeek,
   format,
   startOfWeek,
@@ -96,4 +97,54 @@ export function daysElapsedInWeek(weekStartDate: string, today: string): number 
     cursor = addDays(cursor, 1);
   }
   return count;
+}
+
+const MONTH_RE = /^\d{4}-\d{2}$/;
+
+/** True for a YYYY-MM calendar month key. */
+export function isMonthKey(value: string): boolean {
+  if (!MONTH_RE.test(value)) return false;
+  const month = Number(value.slice(5, 7));
+  return month >= 1 && month <= 12;
+}
+
+/** YYYY-MM for the America/New_York calendar month containing today. */
+export function currentMonthKey(): string {
+  return format(new TZDate(new Date(), APP_TIMEZONE), "yyyy-MM");
+}
+
+/** First day of YYYY-MM as YYYY-MM-DD. */
+export function monthStart(monthKey: string): string {
+  if (!isMonthKey(monthKey)) {
+    throw new Error(`Invalid month key: ${monthKey}`);
+  }
+  return `${monthKey}-01`;
+}
+
+/** Last day of YYYY-MM as YYYY-MM-DD (America/New_York calendar). */
+export function monthEnd(monthKey: string): string {
+  const start = parseYmdInAppTz(monthStart(monthKey));
+  const nextMonth = dfAddMonths(start, 1);
+  return format(dfAddDays(nextMonth, -1), "yyyy-MM-dd");
+}
+
+/** Add n calendar months to a YYYY-MM key. */
+export function addMonths(monthKey: string, n: number): string {
+  const start = parseYmdInAppTz(monthStart(monthKey));
+  return format(dfAddMonths(start, n), "yyyy-MM");
+}
+
+/** Human label for YYYY-MM (e.g. "November 2026"). */
+export function formatMonthLabel(monthKey: string): string {
+  return format(parseYmdInAppTz(monthStart(monthKey)), "MMMM yyyy");
+}
+
+/**
+ * Week-equivalents in a month for target scaling: daysInMonth / 7.
+ * Used as weeklyTarget × weeks.
+ */
+export function weeksInMonth(monthKey: string): number {
+  const start = monthStart(monthKey);
+  const end = monthEnd(monthKey);
+  return daysBetweenInclusive(start, end) / 7;
 }

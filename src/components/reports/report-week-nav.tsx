@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { addDays } from "@/lib/dates";
+import { addDays, currentMonthKey } from "@/lib/dates";
 
 type ReportWeekNavProps = {
   weekStart: string;
@@ -30,9 +31,15 @@ export function ReportWeekNav({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="min-w-0">
+      <div className="min-w-0 space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Weekly report</h1>
         <p className="truncate text-sm text-muted-foreground">{displayRange}</p>
+        <Link
+          href={`/reports/month/${currentMonthKey()}`}
+          className="inline-flex min-h-11 items-center text-sm font-medium text-muted-foreground underline-offset-4 hover:underline"
+        >
+          Monthly report
+        </Link>
       </div>
       <div className="flex items-center gap-2">
         <Button

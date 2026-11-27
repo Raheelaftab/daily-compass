@@ -185,7 +185,7 @@ Replies are short, plain text with task ids so commands can be chained.
 - [ ] README: BotFather setup, env vars, webhook registration command
 
 ### Session 8 — Monthly report + CSV
-- [ ] Month report page, CSV export routes, tests
+- [x] Month report page, CSV export routes, tests
 
 ---
 

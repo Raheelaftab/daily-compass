@@ -17,10 +17,15 @@ import {
   daysBetweenInclusive,
   daysElapsedInWeek,
   formatDisplay,
+  formatMonthLabel,
   formatShortDate,
+  isMonthKey,
   minutesToHours,
+  monthEnd,
+  monthStart,
   todayStr,
   weekEnd,
+  weeksInMonth,
   weekStart,
 } from "@/lib/dates";
 import { bestStreak, currentStreak } from "@/lib/streaks";
@@ -905,6 +910,190 @@ export async function getWeeklyReport(
     top3HitRate,
     habitRates,
     review,
+  };
+}
+
+export type MonthlyReport = {
+  monthKey: string;
+  start: string;
+  end: string;
+  today: string;
+  displayLabel: string;
+  weeks: number;
+  hoursByArea: Array<
+    WeekAreaHours & {
+      percent: number | null;
+    }
+  >;
+  tasksCompleted: number;
+  completedTasks: WeeklyReportTask[];
+  slippedTasks: WeeklyReportTask[];
+  habitChecksDone: number;
+  habitPossible: number;
+  habitRatePercent: number | null;
+  bestDay: {
+    date: string;
+    label: string;
+    minutes: number;
+  } | null;
+};
+
+/** Monthly rollup: hours vs (weekly target × weeks), completed/slipped, habits, best day. */
+export async function getMonthlyReport(
+  monthKey: string,
+): Promise<MonthlyReport> {
+  if (!isMonthKey(monthKey)) {
+    throw new Error(`Invalid month key: ${monthKey}`);
+  }
+
+  const today = todayStr();
+  const start = monthStart(monthKey);
+  const end = monthEnd(monthKey);
+  const weeks = weeksInMonth(monthKey);
+  const habitEnd = today < end ? today : end;
+  const habitDays =
+    start > habitEnd ? 0 : daysBetweenInclusive(start, habitEnd);
+
+  const [activeAreas, logRows, taskRows, activeHabits, habitCheckRows] =
+    await Promise.all([
+      getActiveAreas(),
+      db
+        .select({
+          areaId: timeLogs.areaId,
+          minutes: timeLogs.minutes,
+          logDate: timeLogs.logDate,
+        })
+        .from(timeLogs)
+        .where(and(gte(timeLogs.logDate, start), lte(timeLogs.logDate, end))),
+      db
+        .select({
+          id: tasks.id,
+          title: tasks.title,
+          status: tasks.status,
+          dueDate: tasks.dueDate,
+          completedAt: tasks.completedAt,
+          areaName: areas.name,
+          areaColor: areas.color,
+        })
+        .from(tasks)
+        .innerJoin(areas, eq(tasks.areaId, areas.id)),
+      db
+        .select({ id: habits.id })
+        .from(habits)
+        .where(eq(habits.isActive, true)),
+      db
+        .select({
+          habitId: habitChecks.habitId,
+          checkDate: habitChecks.checkDate,
+        })
+        .from(habitChecks)
+        .innerJoin(habits, eq(habitChecks.habitId, habits.id))
+        .where(
+          and(
+            eq(habits.isActive, true),
+            eq(habitChecks.done, true),
+            gte(habitChecks.checkDate, start),
+            lte(habitChecks.checkDate, habitEnd),
+          ),
+        ),
+    ]);
+
+  const loggedByArea = new Map<number, number>();
+  const minutesByDate = new Map<string, number>();
+  for (const row of logRows) {
+    loggedByArea.set(
+      row.areaId,
+      (loggedByArea.get(row.areaId) ?? 0) + row.minutes,
+    );
+    minutesByDate.set(
+      row.logDate,
+      (minutesByDate.get(row.logDate) ?? 0) + row.minutes,
+    );
+  }
+
+  const hoursByArea = activeAreas.map((area) => {
+    const loggedMinutes = loggedByArea.get(area.id) ?? 0;
+    const targetMinutes =
+      area.weeklyTargetMinutes != null
+        ? Math.round(area.weeklyTargetMinutes * weeks)
+        : null;
+    const percent =
+      targetMinutes != null && targetMinutes > 0
+        ? Math.round((loggedMinutes / targetMinutes) * 100)
+        : null;
+    return {
+      areaId: area.id,
+      name: area.name,
+      color: area.color,
+      loggedMinutes,
+      targetMinutes,
+      percent,
+    };
+  });
+
+  const completedTasks: WeeklyReportTask[] = taskRows
+    .filter((task) => {
+      if (task.status !== "done" || !task.completedAt) return false;
+      const d = completedDateStr(task.completedAt);
+      return d >= start && d <= end;
+    })
+    .map((task) => ({
+      id: task.id,
+      title: task.title,
+      areaName: task.areaName,
+      areaColor: task.areaColor,
+      dueDate: task.dueDate,
+    }));
+
+  const slippedTasks: WeeklyReportTask[] = taskRows
+    .filter(
+      (task) =>
+        task.status !== "done" &&
+        task.dueDate != null &&
+        task.dueDate >= start &&
+        task.dueDate <= end,
+    )
+    .map((task) => ({
+      id: task.id,
+      title: task.title,
+      areaName: task.areaName,
+      areaColor: task.areaColor,
+      dueDate: task.dueDate,
+    }));
+
+  const habitPossible = activeHabits.length * habitDays;
+  const habitChecksDone = habitCheckRows.length;
+  const habitRatePercent =
+    habitPossible > 0
+      ? Math.round((habitChecksDone / habitPossible) * 100)
+      : null;
+
+  let bestDay: MonthlyReport["bestDay"] = null;
+  for (const [date, minutes] of minutesByDate) {
+    if (!bestDay || minutes > bestDay.minutes) {
+      bestDay = {
+        date,
+        label: formatShortDate(date),
+        minutes,
+      };
+    }
+  }
+
+  return {
+    monthKey,
+    start,
+    end,
+    today,
+    displayLabel: formatMonthLabel(monthKey),
+    weeks,
+    hoursByArea,
+    tasksCompleted: completedTasks.length,
+    completedTasks,
+    slippedTasks,
+    habitChecksDone,
+    habitPossible,
+    habitRatePercent,
+    bestDay,
   };
 }
 
