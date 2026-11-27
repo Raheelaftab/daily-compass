@@ -160,9 +160,9 @@ Replies are short, plain text with task ids so commands can be chained.
 - **Done when:** migration applied, Personal area visible, Claude can change a weekly target.
 
 ### Session 2 — Dashboard: task status overview
-- [ ] Range selector (URL-persisted)
-- [ ] Completed / Open / Overdue cards + stacked bar by area
-- [ ] Drill-down drawer with quick actions
+- [x] Range selector (URL-persisted)
+- [x] Completed / Open / Overdue cards + stacked bar by area
+- [x] Drill-down drawer with quick actions
 - **Done when:** clicking any card/bar shows exactly those tasks and actions work.
 
 ### Session 3 — Dashboard: trends

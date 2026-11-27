@@ -908,3 +908,199 @@ export async function getWeeklyReport(
   };
 }
 
+export type DashboardTaskBucket = "completed" | "open" | "overdue";
+
+export type TaskStatusByAreaRow = {
+  areaId: number;
+  name: string;
+  color: string;
+  completed: number;
+  open: number;
+  overdue: number;
+};
+
+export type TaskStatusOverview = {
+  rangeStart: string;
+  rangeEnd: string;
+  today: string;
+  totals: {
+    completed: number;
+    open: number;
+    overdue: number;
+  };
+  byArea: TaskStatusByAreaRow[];
+};
+
+export type TasksForDrillFilter = {
+  bucket: DashboardTaskBucket;
+  rangeStart: string;
+  rangeEnd: string;
+  areaId?: number;
+  /**
+   * For bucket "open" only: when true (Open card), include overdue opens.
+   * Chart "open" segments leave this false so overdue stays in its own stack.
+   */
+  includeOverdue?: boolean;
+};
+
+/**
+ * Task status overview for the dashboard range.
+ * Completed = done with completedAt in range; open/overdue = current snapshot.
+ */
+export async function getTaskStatusByArea(range: {
+  start: string;
+  end: string;
+}): Promise<TaskStatusOverview> {
+  const today = todayStr();
+  const [activeAreas, allTasks] = await Promise.all([
+    getActiveAreas(),
+    db
+      .select({
+        id: tasks.id,
+        areaId: tasks.areaId,
+        status: tasks.status,
+        dueDate: tasks.dueDate,
+        completedAt: tasks.completedAt,
+      })
+      .from(tasks),
+  ]);
+
+  const completedIdsByArea = new Map<number, number>();
+  let completedTotal = 0;
+
+  for (const task of allTasks) {
+    if (task.status !== "done" || !task.completedAt) continue;
+    const d = completedDateStr(task.completedAt);
+    if (d < range.start || d > range.end) continue;
+    completedTotal += 1;
+    completedIdsByArea.set(
+      task.areaId,
+      (completedIdsByArea.get(task.areaId) ?? 0) + 1,
+    );
+  }
+
+  const openTasks = allTasks.filter(
+    (task) => task.status === "todo" || task.status === "in_progress",
+  );
+  const overdueTasks = openTasks.filter(
+    (task) => task.dueDate != null && task.dueDate < today,
+  );
+  const openNonOverdue = openTasks.filter(
+    (task) => !(task.dueDate != null && task.dueDate < today),
+  );
+
+  const openByArea = new Map<number, number>();
+  const overdueByArea = new Map<number, number>();
+  for (const task of openNonOverdue) {
+    openByArea.set(task.areaId, (openByArea.get(task.areaId) ?? 0) + 1);
+  }
+  for (const task of overdueTasks) {
+    overdueByArea.set(task.areaId, (overdueByArea.get(task.areaId) ?? 0) + 1);
+  }
+
+  const byArea: TaskStatusByAreaRow[] = activeAreas
+    .map((area) => ({
+      areaId: area.id,
+      name: area.name,
+      color: area.color,
+      completed: completedIdsByArea.get(area.id) ?? 0,
+      open: openByArea.get(area.id) ?? 0,
+      overdue: overdueByArea.get(area.id) ?? 0,
+    }))
+    .filter((row) => row.completed > 0 || row.open > 0 || row.overdue > 0);
+
+  return {
+    rangeStart: range.start,
+    rangeEnd: range.end,
+    today,
+    totals: {
+      completed: completedTotal,
+      open: openTasks.length,
+      overdue: overdueTasks.length,
+    },
+    byArea,
+  };
+}
+
+/** Tasks matching a dashboard drill-down filter (card or chart segment). */
+export async function getTasksForDrill(
+  filter: TasksForDrillFilter,
+): Promise<TaskWithArea[]> {
+  const today = todayStr();
+  const conditions = [];
+
+  if (filter.areaId != null) {
+    conditions.push(eq(tasks.areaId, filter.areaId));
+  }
+
+  if (filter.bucket === "completed") {
+    conditions.push(eq(tasks.status, "done"));
+  } else if (filter.bucket === "open" || filter.bucket === "overdue") {
+    conditions.push(inArray(tasks.status, ["todo", "in_progress"]));
+  }
+
+  const whereClause =
+    conditions.length === 0
+      ? undefined
+      : conditions.length === 1
+        ? conditions[0]
+        : and(...conditions);
+
+  const rows = await db
+    .select({
+      id: tasks.id,
+      areaId: tasks.areaId,
+      title: tasks.title,
+      notes: tasks.notes,
+      priority: tasks.priority,
+      status: tasks.status,
+      dueDate: tasks.dueDate,
+      top3For: tasks.top3For,
+      completedAt: tasks.completedAt,
+      createdAt: tasks.createdAt,
+      areaName: areas.name,
+      areaColor: areas.color,
+    })
+    .from(tasks)
+    .innerJoin(areas, eq(tasks.areaId, areas.id))
+    .where(whereClause)
+    .orderBy(desc(tasks.createdAt));
+
+  const mapped: TaskWithArea[] = rows.map((row) => ({
+    id: row.id,
+    areaId: row.areaId,
+    title: row.title,
+    notes: row.notes,
+    priority: row.priority,
+    status: row.status,
+    dueDate: row.dueDate,
+    top3For: row.top3For,
+    completedAt: row.completedAt ? row.completedAt.toISOString() : null,
+    createdAt: row.createdAt.toISOString(),
+    areaName: row.areaName,
+    areaColor: row.areaColor,
+  }));
+
+  if (filter.bucket === "completed") {
+    return mapped.filter((task) => {
+      if (!task.completedAt) return false;
+      const d = completedDateStr(new Date(task.completedAt));
+      return d >= filter.rangeStart && d <= filter.rangeEnd;
+    });
+  }
+
+  if (filter.bucket === "overdue") {
+    return mapped.filter(
+      (task) => task.dueDate != null && task.dueDate < today,
+    );
+  }
+
+  if (filter.includeOverdue) {
+    return mapped;
+  }
+
+  return mapped.filter(
+    (task) => !(task.dueDate != null && task.dueDate < today),
+  );
+}
+

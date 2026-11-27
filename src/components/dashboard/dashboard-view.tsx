@@ -1,6 +1,7 @@
 import { HoursByAreaChart } from "@/components/charts/hours-by-area-chart";
 import { WeeklyTrendChart } from "@/components/charts/weekly-trend-chart";
-import { WeekSelector } from "@/components/dashboard/week-selector";
+import { RangeSelector } from "@/components/dashboard/range-selector";
+import { TaskStatusOverviewSection } from "@/components/dashboard/task-status-overview";
 import {
   Card,
   CardContent,
@@ -10,13 +11,19 @@ import {
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { areaDotClass } from "@/lib/areas";
+import type { DashboardDateRange } from "@/lib/dashboard-range";
 import { formatMinutes, minutesToHours } from "@/lib/dates";
-import type { WeekStats, WeeklyTrendPoint } from "@/lib/queries";
+import type {
+  TaskStatusOverview,
+  WeekStats,
+  WeeklyTrendPoint,
+} from "@/lib/queries";
 
 type DashboardViewProps = {
+  range: DashboardDateRange;
+  taskOverview: TaskStatusOverview;
   stats: WeekStats;
   trend: WeeklyTrendPoint[];
-  currentWeekStart: string;
 };
 
 function StatCard({
@@ -48,22 +55,28 @@ function StatCard({
 }
 
 export function DashboardView({
+  range,
+  taskOverview,
   stats,
   trend,
-  currentWeekStart,
 }: DashboardViewProps) {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
-      <WeekSelector
-        weekStart={stats.weekStart}
-        currentWeekStart={currentWeekStart}
-        displayRange={stats.displayRange}
-      />
+      <RangeSelector range={range} />
+
+      <TaskStatusOverviewSection overview={taskOverview} />
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-          Hours by area
-        </h2>
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+            Hours by area
+          </h2>
+          {range.preset !== "this-week" && range.preset !== "last-week" ? (
+            <p className="text-xs text-muted-foreground">
+              Week view: {stats.displayRange}
+            </p>
+          ) : null}
+        </div>
         <div className="rounded-lg border p-3">
           <HoursByAreaChart data={stats.hoursByArea} />
         </div>
@@ -86,17 +99,6 @@ export function DashboardView({
               : "No weekly targets set"
           }
         />
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-          Tasks
-        </h2>
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard label="Completed" value={String(stats.tasksCompleted)} />
-          <StatCard label="Open" value={String(stats.tasksOpen)} />
-          <StatCard label="Overdue" value={String(stats.tasksOverdue)} />
-        </div>
       </section>
 
       <section className="space-y-3">
