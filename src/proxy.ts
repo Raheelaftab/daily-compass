@@ -27,6 +27,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Telegram webhook + Vercel cron use their own secrets (not the session cookie).
+  if (
+    pathname === "/api/telegram" ||
+    pathname.startsWith("/api/cron/")
+  ) {
+    return NextResponse.next();
+  }
+
   // PWA assets / offline fallback must be reachable without a session.
   if (pathname === "/sw.js" || pathname === "/offline") {
     return NextResponse.next();

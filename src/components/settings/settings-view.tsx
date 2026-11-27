@@ -4,8 +4,10 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateArea } from "@/actions/areas";
+import { updateTelegramDigests } from "@/actions/telegram";
 import { AREA_COLOR_OPTIONS, areaDotClass } from "@/lib/areas";
 import type { AreaRow } from "@/lib/queries";
+import type { TelegramSettingsRow } from "@/lib/telegram/settings";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -20,6 +22,7 @@ import {
 
 type SettingsViewProps = {
   areas: AreaRow[];
+  telegram: TelegramSettingsRow;
 };
 
 type AreaFormState = {
@@ -43,11 +46,14 @@ function toFormState(area: AreaRow): AreaFormState {
   };
 }
 
-export function SettingsView({ areas }: SettingsViewProps) {
+export function SettingsView({ areas, telegram }: SettingsViewProps) {
   const [forms, setForms] = useState<Record<number, AreaFormState>>(() =>
     Object.fromEntries(areas.map((area) => [area.id, toFormState(area)])),
   );
+  const [morningDigest, setMorningDigest] = useState(telegram.morningDigest);
+  const [eveningNudge, setEveningNudge] = useState(telegram.eveningNudge);
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [digestPending, setDigestPending] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function updateForm(id: number, patch: Partial<AreaFormState>) {
@@ -85,14 +91,73 @@ export function SettingsView({ areas }: SettingsViewProps) {
     });
   }
 
+  function onSaveDigests() {
+    setDigestPending(true);
+    startTransition(async () => {
+      const result = await updateTelegramDigests({
+        morningDigest,
+        eveningNudge,
+      });
+      setDigestPending(false);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Telegram digests updated");
+    });
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Edit life areas, colors, and weekly hour targets
+          Edit life areas, colors, weekly hour targets, and Telegram digests
         </p>
       </div>
+
+      <section className="space-y-3 rounded-lg border p-4">
+        <div>
+          <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+            Telegram digests
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {telegram.chatId
+              ? "Bot is paired. Toggle morning/evening messages."
+              : "Bot not paired yet — send /start <PAIR_CODE> in Telegram first."}
+          </p>
+        </div>
+        <div className="flex min-h-11 items-center gap-3">
+          <Checkbox
+            id="telegram-morning"
+            checked={morningDigest}
+            onCheckedChange={(checked) => setMorningDigest(Boolean(checked))}
+            className="size-5"
+          />
+          <label htmlFor="telegram-morning" className="text-sm font-medium">
+            Morning digest
+          </label>
+        </div>
+        <div className="flex min-h-11 items-center gap-3">
+          <Checkbox
+            id="telegram-evening"
+            checked={eveningNudge}
+            onCheckedChange={(checked) => setEveningNudge(Boolean(checked))}
+            className="size-5"
+          />
+          <label htmlFor="telegram-evening" className="text-sm font-medium">
+            Evening nudge
+          </label>
+        </div>
+        <Button
+          type="button"
+          className="h-11"
+          onClick={onSaveDigests}
+          disabled={digestPending}
+        >
+          {digestPending ? "Saving…" : "Save digests"}
+        </Button>
+      </section>
 
       {areas.length === 0 ? (
         <EmptyState className="py-10">No areas yet</EmptyState>

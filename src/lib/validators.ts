@@ -137,5 +137,20 @@ export const updateAreaSchema = z.object({
   sortOrder: z.coerce.number().int().min(0).max(999),
 });
 
+export const updateTelegramDigestsSchema = z
+  .object({
+    morningDigest: z.boolean().optional(),
+    eveningNudge: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      data.morningDigest !== undefined || data.eveningNudge !== undefined,
+    { message: "Provide at least one toggle" },
+  );
+
 export type SaveWeeklyReviewInput = z.infer<typeof saveWeeklyReviewSchema>;
 export type UpdateAreaInput = z.infer<typeof updateAreaSchema>;
+export type UpdateTelegramDigestsInput = z.infer<
+  typeof updateTelegramDigestsSchema
+>;
+

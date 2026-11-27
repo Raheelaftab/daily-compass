@@ -72,7 +72,7 @@ async function seed() {
   // Dynamic imports so dotenv loads before DATABASE_URL is read.
   const { eq } = await import("drizzle-orm");
   const { db } = await import("./index");
-  const { areas, habits } = await import("./schema");
+  const { areas, habits, telegramSettings } = await import("./schema");
 
   for (const area of AREA_SEED) {
     await db
@@ -133,7 +133,12 @@ async function seed() {
     }
   }
 
-  console.log("Seed complete: 8 areas, 4 habits");
+  const [telegramRow] = await db.select().from(telegramSettings).limit(1);
+  if (!telegramRow) {
+    await db.insert(telegramSettings).values({});
+  }
+
+  console.log("Seed complete: 8 areas, 4 habits, telegram settings");
 }
 
 seed()

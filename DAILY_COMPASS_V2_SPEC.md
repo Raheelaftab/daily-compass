@@ -180,9 +180,9 @@ Replies are short, plain text with task ids so commands can be chained.
 - **Done when:** installable from Chrome (Android) and "Add to Home Screen" (iOS) opens standalone.
 
 ### Session 7 — Telegram bot
-- [ ] Webhook route + security + pairing, all commands, tests for parsing and auth
-- [ ] Cron routes + `vercel.json` + Settings toggles
-- [ ] README: BotFather setup, env vars, webhook registration command
+- [x] Webhook route + security + pairing, all commands, tests for parsing and auth
+- [x] Cron routes + `vercel.json` + Settings toggles
+- [x] README: BotFather setup, env vars, webhook registration command
 
 ### Session 8 — Monthly report + CSV
 - [x] Month report page, CSV export routes, tests

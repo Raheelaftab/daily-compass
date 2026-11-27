@@ -3,11 +3,15 @@ import { Suspense } from "react";
 
 import { SettingsView } from "@/components/settings/settings-view";
 import { getAllAreas } from "@/lib/queries";
+import { getOrCreateTelegramSettings } from "@/lib/telegram/settings";
 
 async function SettingsPageContent() {
   await connection();
-  const areas = await getAllAreas();
-  return <SettingsView areas={areas} />;
+  const [areas, telegram] = await Promise.all([
+    getAllAreas(),
+    getOrCreateTelegramSettings(),
+  ]);
+  return <SettingsView areas={areas} telegram={telegram} />;
 }
 
 export default function SettingsPage() {
