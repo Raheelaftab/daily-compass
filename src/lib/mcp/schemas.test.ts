@@ -7,6 +7,8 @@ import {
   listTasksSchema,
   logTimeMcpSchema,
   setTop3Schema,
+  startTimerMcpSchema,
+  stopTimerMcpSchema,
   updateAreaMcpSchema,
   updateTaskMcpSchema,
 } from "./schemas";
@@ -238,5 +240,36 @@ describe("update_area schema", () => {
         color: "pink",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("start_timer schema", () => {
+  it("requires areaSlug or taskId", () => {
+    expect(startTimerMcpSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("accepts areaSlug alone", () => {
+    expect(
+      startTimerMcpSchema.parse({ areaSlug: "rinoviy" }).areaSlug,
+    ).toBe("rinoviy");
+  });
+
+  it("accepts taskId alone", () => {
+    expect(startTimerMcpSchema.parse({ taskId: 12 }).taskId).toBe(12);
+  });
+});
+
+describe("stop_timer schema", () => {
+  it("accepts an empty object", () => {
+    expect(stopTimerMcpSchema.safeParse({}).success).toBe(true);
+  });
+
+  it("accepts minutes override", () => {
+    expect(stopTimerMcpSchema.parse({ minutes: 90 }).minutes).toBe(90);
+  });
+
+  it("rejects out-of-range minutes", () => {
+    expect(stopTimerMcpSchema.safeParse({ minutes: 0 }).success).toBe(false);
+    expect(stopTimerMcpSchema.safeParse({ minutes: 721 }).success).toBe(false);
   });
 });

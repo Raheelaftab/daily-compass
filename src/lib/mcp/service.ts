@@ -10,6 +10,7 @@ import {
   type TaskStatusFilter,
 } from "@/lib/queries";
 import { spawnNextRecurringTask } from "@/lib/recurrence-spawn";
+import { startTimerRun, stopRunningTimer } from "@/lib/timer-ops";
 
 import type {
   CreateTaskMcpInput,
@@ -17,6 +18,8 @@ import type {
   ListTasksInput,
   LogTimeMcpInput,
   SetTop3Input,
+  StartTimerMcpInput,
+  StopTimerMcpInput,
   UpdateAreaMcpInput,
   UpdateTaskMcpInput,
 } from "./schemas";
@@ -372,5 +375,60 @@ export async function updateArea(input: UpdateAreaMcpInput) {
       updated.weeklyTargetMinutes != null
         ? minutesToHours(updated.weeklyTargetMinutes)
         : null,
+  };
+}
+
+export async function startTimer(input: StartTimerMcpInput) {
+  let areaId: number | undefined;
+  const taskId = input.taskId ?? null;
+
+  if (taskId != null) {
+    const [task] = await db
+      .select({ id: tasks.id, areaId: tasks.areaId })
+      .from(tasks)
+      .where(eq(tasks.id, taskId))
+      .limit(1);
+    if (!task) {
+      throw new McpToolError(`Task not found: ${taskId}`);
+    }
+    areaId = task.areaId;
+  }
+
+  if (input.areaSlug != null) {
+    const area = await findAreaBySlug(input.areaSlug);
+    if (areaId == null) {
+      areaId = area.id;
+    }
+  }
+
+  if (areaId == null) {
+    throw new McpToolError("Provide areaSlug or taskId");
+  }
+
+  try {
+    const timer = await startTimerRun({
+      areaId,
+      taskId,
+      note: input.note ?? null,
+    });
+    return timer;
+  } catch (error) {
+    throw new McpToolError(
+      error instanceof Error ? error.message : "Could not start timer",
+    );
+  }
+}
+
+export async function stopTimer(input: StopTimerMcpInput = {}) {
+  const logged = await stopRunningTimer({ minutes: input.minutes });
+  if (!logged) {
+    return { stopped: false as const, message: "No timer was running" };
+  }
+  return {
+    stopped: true as const,
+    minutes: logged.minutes,
+    logDate: logged.logDate,
+    areaId: logged.areaId,
+    taskId: logged.taskId,
   };
 }

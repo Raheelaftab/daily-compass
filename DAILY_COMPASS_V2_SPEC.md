@@ -173,7 +173,7 @@ Replies are short, plain text with task ids so commands can be chained.
 - [x] Repeat field, next-instance generation, icon, MCP support, tests (incl. no duplicates, weekly days, month-end)
 
 ### Session 5 — Timer
-- [ ] Start/stop, header pill, DB-backed, MCP tools, tests
+- [x] Start/stop, header pill, DB-backed, MCP tools, tests
 
 ### Session 6 — PWA
 - [ ] Manifest, icons, service worker, offline page

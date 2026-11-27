@@ -1,4 +1,5 @@
 import { HabitsToday } from "@/components/habits/habits-today";
+import { StartTimerPicker } from "@/components/timer/start-timer-picker";
 import { QuickLogForm } from "@/components/today/quick-log-form";
 import { TodaysLogList } from "@/components/today/todays-log-list";
 import { Top3Section } from "@/components/today/top3-section";
@@ -27,6 +28,13 @@ export function TodayView({ data }: TodayViewProps) {
         top3={data.top3}
         openTasks={data.openTasks}
       />
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+          Timer
+        </h2>
+        <StartTimerPicker areas={data.areas} openTasks={data.openTasks} />
+      </section>
 
       <QuickLogForm areas={data.areas} openTasks={data.openTasks} />
 

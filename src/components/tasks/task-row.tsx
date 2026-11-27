@@ -2,6 +2,7 @@
 
 import { useOptimistic, useTransition } from "react";
 import { MoreHorizontal, Repeat, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import {
@@ -9,6 +10,7 @@ import {
   setTaskStatus,
   toggleTop3,
 } from "@/actions/tasks";
+import { startTimer } from "@/actions/timers";
 import { areaDotClass } from "@/lib/areas";
 import type { TaskWithArea } from "@/lib/queries";
 import { parseRecurrence, recurrenceLabel } from "@/lib/recurrence";
@@ -31,6 +33,7 @@ type TaskRowProps = {
 };
 
 export function TaskRow({ task, today, onEdit }: TaskRowProps) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useOptimistic(task.status);
 
@@ -160,6 +163,22 @@ export function TaskRow({ task, today, onEdit }: TaskRowProps) {
         <DropdownMenuContent align="end" className="min-w-44">
           <DropdownMenuItem className="min-h-11" onClick={() => onEdit(task)}>
             Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="min-h-11"
+            onClick={() => {
+              startTransition(async () => {
+                const result = await startTimer({ taskId: task.id });
+                if (!result.ok) {
+                  toast.error(result.error);
+                  return;
+                }
+                toast.success("Timer started");
+                router.refresh();
+              });
+            }}
+          >
+            Start timer
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

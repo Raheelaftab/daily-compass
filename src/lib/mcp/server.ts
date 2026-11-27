@@ -7,6 +7,8 @@ import {
   listTasksSchema,
   logTimeMcpSchema,
   setTop3Schema,
+  startTimerMcpSchema,
+  stopTimerMcpSchema,
   updateAreaMcpSchema,
   updateTaskMcpSchema,
 } from "./schemas";
@@ -132,5 +134,27 @@ export function registerDailyCompassTools(server: McpServer): void {
       inputSchema: updateAreaMcpSchema,
     },
     async (args) => runTool(() => service.updateArea(args)),
+  );
+
+  server.registerTool(
+    "start_timer",
+    {
+      title: "Start timer",
+      description:
+        "Start a DB-backed timer for an area (areaSlug) and/or task (taskId). Only one timer runs at a time; starting a new one stops and logs the previous. Optional note.",
+      inputSchema: startTimerMcpSchema,
+    },
+    async (args) => runTool(() => service.startTimer(args)),
+  );
+
+  server.registerTool(
+    "stop_timer",
+    {
+      title: "Stop timer",
+      description:
+        "Stop the running timer, create a time_logs row (minutes rounded to nearest minute, min 1; log date = start date in America/New_York), and delete the timer. Optional minutes override (1–720) for long runs.",
+      inputSchema: stopTimerMcpSchema,
+    },
+    async (args) => runTool(() => service.stopTimer(args)),
   );
 }

@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 
 import { logout } from "@/actions/auth";
+import { TimerPill } from "@/components/timer/timer-pill";
 import { Button } from "@/components/ui/button";
+import type { RunningTimer } from "@/lib/timer-ops";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -24,15 +26,20 @@ const links = [
   { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
-export function Sidebar() {
+type SidebarProps = {
+  timer: RunningTimer | null;
+};
+
+export function Sidebar({ timer }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside className="hidden md:flex md:w-56 md:flex-col md:border-r md:bg-sidebar md:text-sidebar-foreground">
-      <div className="border-b px-4 py-5">
+      <div className="space-y-3 border-b px-4 py-5">
         <Link href="/" className="text-lg font-semibold tracking-tight">
           Daily Compass
         </Link>
+        <TimerPill timer={timer} className="w-full max-w-full justify-between" />
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">
         {links.map(({ href, label, icon: Icon }) => {

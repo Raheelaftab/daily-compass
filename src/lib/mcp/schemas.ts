@@ -111,6 +111,25 @@ export const getWeekSummarySchema = z.object({
   weekStart: optionalYmd,
 });
 
+export const startTimerMcpSchema = z
+  .object({
+    /** Area slug from list_areas. Required unless taskId is provided. */
+    areaSlug: z.string().trim().min(1).optional(),
+    taskId: z.coerce.number().int().positive().optional(),
+    note: optionalLogNote,
+  })
+  .refine((data) => data.areaSlug != null || data.taskId != null, {
+    message: "Provide areaSlug or taskId",
+  });
+
+export const stopTimerMcpSchema = z.object({
+  /**
+   * Optional minutes override (e.g. after a long run).
+   * When omitted, minutes are computed from startedAt (nearest minute, min 1).
+   */
+  minutes: z.coerce.number().int().min(1).max(720).optional(),
+});
+
 export const updateAreaMcpSchema = z
   .object({
     slug: z.string().trim().min(1, "Area slug is required"),
@@ -146,3 +165,5 @@ export type SetTop3Input = z.infer<typeof setTop3Schema>;
 export type LogTimeMcpInput = z.infer<typeof logTimeMcpSchema>;
 export type GetWeekSummaryInput = z.infer<typeof getWeekSummarySchema>;
 export type UpdateAreaMcpInput = z.infer<typeof updateAreaMcpSchema>;
+export type StartTimerMcpInput = z.infer<typeof startTimerMcpSchema>;
+export type StopTimerMcpInput = z.infer<typeof stopTimerMcpSchema>;

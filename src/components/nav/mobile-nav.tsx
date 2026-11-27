@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { logout } from "@/actions/auth";
+import { TimerPill } from "@/components/timer/timer-pill";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { RunningTimer } from "@/lib/timer-ops";
 import { cn } from "@/lib/utils";
 
 const tabLinks = [
@@ -30,12 +32,21 @@ const tabLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
 ] as const;
 
-export function MobileTopBar() {
+type MobileTopBarProps = {
+  timer: RunningTimer | null;
+};
+
+export function MobileTopBar({ timer }: MobileTopBarProps) {
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur md:hidden">
-      <Link href="/" className="text-base font-semibold tracking-tight">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-2 border-b bg-background/95 px-4 backdrop-blur md:hidden">
+      <Link
+        href="/"
+        className="shrink-0 text-base font-semibold tracking-tight"
+      >
         Daily Compass
       </Link>
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-1">
+        <TimerPill timer={timer} className="min-w-0" />
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -75,6 +86,7 @@ export function MobileTopBar() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }
