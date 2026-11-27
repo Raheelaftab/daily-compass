@@ -19,24 +19,32 @@ async function hasValidSession(request: NextRequest): Promise<boolean> {
   }
 }
 
+/**
+ * Paths that must not go through the cookie session gate.
+ * Telegram + cron also belong in the matcher exclusion so Proxy never runs
+ * (Next.js buffers request bodies when Proxy matches, which can prevent the
+ * route handler from executing).
+ */
+export function shouldBypassSessionAuth(pathname: string): boolean {
+  if (pathname === "/api/mcp" || pathname.startsWith("/api/mcp/")) {
+    return true;
+  }
+  if (pathname === "/api/telegram" || pathname.startsWith("/api/telegram/")) {
+    return true;
+  }
+  if (pathname.startsWith("/api/cron/")) {
+    return true;
+  }
+  if (pathname === "/sw.js" || pathname === "/offline") {
+    return true;
+  }
+  return false;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // MCP uses Bearer MCP_API_TOKEN; skip cookie session gate.
-  if (pathname === "/api/mcp" || pathname.startsWith("/api/mcp/")) {
-    return NextResponse.next();
-  }
-
-  // Telegram webhook + Vercel cron use their own secrets (not the session cookie).
-  if (
-    pathname === "/api/telegram" ||
-    pathname.startsWith("/api/cron/")
-  ) {
-    return NextResponse.next();
-  }
-
-  // PWA assets / offline fallback must be reachable without a session.
-  if (pathname === "/sw.js" || pathname === "/offline") {
+  if (shouldBypassSessionAuth(pathname)) {
     return NextResponse.next();
   }
 
@@ -61,8 +69,14 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all paths except static assets and Next internals.
+     * Match app routes for session auth, but never run Proxy for:
+     * - /api/telegram (Telegram verifies X-Telegram-Bot-Api-Secret-Token)
+     * - /api/cron/* (Cron verifies Authorization: Bearer CRON_SECRET)
+     * - static assets / Next internals
+     *
+     * Excluding telegram/cron from the matcher is required so Proxy does not
+     * buffer their bodies and block the route handlers.
      */
-    "/((?!_next/static|_next/image|_next/data|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api/telegram(?:/|$)|api/cron/|_next/static|_next/image|_next/data|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

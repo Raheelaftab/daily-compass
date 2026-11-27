@@ -1,7 +1,11 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import { NextResponse } from "next/server";
 
 import { verifyMcpBearerToken } from "@/lib/mcp/auth";
 import { registerDailyCompassTools } from "@/lib/mcp/server";
+
+/** Keep tool calls short-lived on Vercel (no open SSE streams). */
+export const maxDuration = 30;
 
 const mcpHandler = createMcpHandler(
   (server) => {
@@ -17,9 +21,24 @@ const mcpHandler = createMcpHandler(
   },
 );
 
-const handler = withMcpAuth(mcpHandler, verifyMcpBearerToken, {
+const postHandler = withMcpAuth(mcpHandler, verifyMcpBearerToken, {
   required: true,
   requiredScopes: ["daily-compass"],
 });
 
-export { handler as GET, handler as POST, handler as DELETE };
+/** Stateless JSON request/response only — no long-lived GET/SSE streams. */
+export async function GET() {
+  return new NextResponse(null, {
+    status: 405,
+    headers: { Allow: "POST" },
+  });
+}
+
+export async function DELETE() {
+  return new NextResponse(null, {
+    status: 405,
+    headers: { Allow: "POST" },
+  });
+}
+
+export { postHandler as POST };
