@@ -1,5 +1,7 @@
-import { HoursByAreaChart } from "@/components/charts/hours-by-area-chart";
-import { WeeklyTrendChart } from "@/components/charts/weekly-trend-chart";
+import { CompletionTrendChart } from "@/components/charts/completion-trend-chart";
+import { DailyMinutesChart } from "@/components/charts/daily-minutes-chart";
+import { HabitHeatmap } from "@/components/dashboard/habit-heatmap";
+import { HoursByAreaSection } from "@/components/dashboard/hours-by-area-section";
 import { RangeSelector } from "@/components/dashboard/range-selector";
 import { TaskStatusOverviewSection } from "@/components/dashboard/task-status-overview";
 import {
@@ -14,16 +16,24 @@ import { areaDotClass } from "@/lib/areas";
 import type { DashboardDateRange } from "@/lib/dashboard-range";
 import { formatMinutes, minutesToHours } from "@/lib/dates";
 import type {
+  CompletionTrendPoint,
+  DailyMinutesChartData,
+  HabitHeatmapData,
+  HabitRateSummary,
   TaskStatusOverview,
+  WeekAreaHours,
   WeekStats,
-  WeeklyTrendPoint,
 } from "@/lib/queries";
 
 type DashboardViewProps = {
   range: DashboardDateRange;
   taskOverview: TaskStatusOverview;
   stats: WeekStats;
-  trend: WeeklyTrendPoint[];
+  hoursByArea: WeekAreaHours[];
+  completionTrend: CompletionTrendPoint[];
+  dailyMinutes: DailyMinutesChartData;
+  habitRate: HabitRateSummary;
+  habitHeatmap: HabitHeatmapData;
 };
 
 function StatCard({
@@ -58,8 +68,25 @@ export function DashboardView({
   range,
   taskOverview,
   stats,
-  trend,
+  hoursByArea,
+  completionTrend,
+  dailyMinutes,
+  habitRate,
+  habitHeatmap,
 }: DashboardViewProps) {
+  const totalLoggedMinutes = hoursByArea.reduce(
+    (sum, row) => sum + row.loggedMinutes,
+    0,
+  );
+  const totalTargetMinutes = hoursByArea.reduce(
+    (sum, row) => sum + (row.targetMinutes ?? 0),
+    0,
+  );
+  const targetPercent =
+    totalTargetMinutes > 0
+      ? Math.round((totalLoggedMinutes / totalTargetMinutes) * 100)
+      : null;
+
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <RangeSelector range={range} />
@@ -67,35 +94,50 @@ export function DashboardView({
       <TaskStatusOverviewSection overview={taskOverview} />
 
       <section className="space-y-3">
-        <div className="space-y-1">
-          <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-            Hours by area
-          </h2>
-          {range.preset !== "this-week" && range.preset !== "last-week" ? (
-            <p className="text-xs text-muted-foreground">
-              Week view: {stats.displayRange}
-            </p>
-          ) : null}
-        </div>
+        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+          Completed vs created
+        </h2>
         <div className="rounded-lg border p-3">
-          <HoursByAreaChart data={stats.hoursByArea} />
+          <CompletionTrendChart data={completionTrend} />
         </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+          Daily time
+        </h2>
+        <div className="rounded-lg border p-3">
+          <DailyMinutesChart data={dailyMinutes} />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+          Hours by area
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          Tap a logged bar to see time logs. Targets scale with the selected
+          range.
+        </p>
+        <HoursByAreaSection
+          data={hoursByArea}
+          rangeStart={range.start}
+          rangeEnd={range.end}
+        />
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2">
         <StatCard
           label="Hours logged"
-          value={`${minutesToHours(stats.totalLoggedMinutes)}h`}
-          hint={formatMinutes(stats.totalLoggedMinutes)}
+          value={`${minutesToHours(totalLoggedMinutes)}h`}
+          hint={formatMinutes(totalLoggedMinutes)}
         />
         <StatCard
           label="Target reached"
-          value={
-            stats.targetPercent != null ? `${stats.targetPercent}%` : "—"
-          }
+          value={targetPercent != null ? `${targetPercent}%` : "—"}
           hint={
-            stats.totalTargetMinutes > 0
-              ? `${minutesToHours(stats.totalLoggedMinutes)}h of ${minutesToHours(stats.totalTargetMinutes)}h target`
+            totalTargetMinutes > 0
+              ? `${minutesToHours(totalLoggedMinutes)}h of ${minutesToHours(totalTargetMinutes)}h target`
               : "No weekly targets set"
           }
         />
@@ -134,24 +176,21 @@ export function DashboardView({
         <StatCard
           label="Completion rate"
           value={
-            stats.habitRatePercent != null
-              ? `${stats.habitRatePercent}%`
+            habitRate.habitRatePercent != null
+              ? `${habitRate.habitRatePercent}%`
               : "—"
           }
           hint={
-            stats.habitPossible > 0
-              ? `${stats.habitChecksDone} of ${stats.habitPossible} checks (${stats.daysElapsed} day${stats.daysElapsed === 1 ? "" : "s"} elapsed)`
+            habitRate.habitPossible > 0
+              ? `${habitRate.habitChecksDone} of ${habitRate.habitPossible} checks (${habitRate.daysElapsed} day${habitRate.daysElapsed === 1 ? "" : "s"} in range)`
               : "No habit checks possible yet"
           }
         />
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-          Trend (last 8 weeks)
-        </h2>
         <div className="rounded-lg border p-3">
-          <WeeklyTrendChart data={trend} />
+          <p className="mb-3 text-xs text-muted-foreground">
+            Last 30 days
+          </p>
+          <HabitHeatmap data={habitHeatmap} />
         </div>
       </section>
     </div>

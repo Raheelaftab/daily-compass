@@ -7,9 +7,13 @@ import {
   weekStartForLegacyWidgets,
 } from "@/lib/dashboard-range";
 import {
+  getCompletionTrend,
+  getDailyMinutes,
+  getHabitHeatmap,
+  getHabitRateForRange,
+  getHoursByAreaForRange,
   getTaskStatusByArea,
   getWeekStats,
-  getWeeklyTrend,
 } from "@/lib/queries";
 
 type DashboardPageProps = {
@@ -26,11 +30,24 @@ async function DashboardPageContent({ searchParams }: DashboardPageProps) {
   const params = await searchParams;
   const range = resolveDashboardRange(params);
   const legacyWeek = weekStartForLegacyWidgets(range);
+  const rangeKey = { start: range.start, end: range.end };
 
-  const [taskOverview, stats, trend] = await Promise.all([
-    getTaskStatusByArea({ start: range.start, end: range.end }),
+  const [
+    taskOverview,
+    stats,
+    completionTrend,
+    dailyMinutes,
+    hoursByArea,
+    habitRate,
+    habitHeatmap,
+  ] = await Promise.all([
+    getTaskStatusByArea(rangeKey),
     getWeekStats(legacyWeek),
-    getWeeklyTrend(8),
+    getCompletionTrend(rangeKey),
+    getDailyMinutes(rangeKey),
+    getHoursByAreaForRange(rangeKey),
+    getHabitRateForRange(rangeKey),
+    getHabitHeatmap(30),
   ]);
 
   return (
@@ -38,7 +55,11 @@ async function DashboardPageContent({ searchParams }: DashboardPageProps) {
       range={range}
       taskOverview={taskOverview}
       stats={stats}
-      trend={trend}
+      hoursByArea={hoursByArea}
+      completionTrend={completionTrend}
+      dailyMinutes={dailyMinutes}
+      habitRate={habitRate}
+      habitHeatmap={habitHeatmap}
     />
   );
 }
@@ -61,6 +82,7 @@ export default function DashboardPage(props: DashboardPageProps) {
             <div className="h-24 animate-pulse rounded-lg bg-muted" />
             <div className="h-24 animate-pulse rounded-lg bg-muted" />
           </div>
+          <div className="h-56 animate-pulse rounded-lg bg-muted" />
           <div className="h-56 animate-pulse rounded-lg bg-muted" />
         </div>
       }

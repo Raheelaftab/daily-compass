@@ -14,8 +14,11 @@ import {
 import {
   APP_TIMEZONE,
   addDays,
+  daysBetweenInclusive,
   daysElapsedInWeek,
   formatDisplay,
+  formatShortDate,
+  minutesToHours,
   todayStr,
   weekEnd,
   weekStart,
@@ -1102,5 +1105,392 @@ export async function getTasksForDrill(
   return mapped.filter(
     (task) => !(task.dueDate != null && task.dueDate < today),
   );
+}
+
+export type CompletionTrendPoint = {
+  key: string;
+  label: string;
+  completed: number;
+  created: number;
+};
+
+/**
+ * Completed vs created counts across a range.
+ * Daily buckets when span ≤ 45 days; otherwise weekly (Mon start).
+ */
+export async function getCompletionTrend(range: {
+  start: string;
+  end: string;
+}): Promise<CompletionTrendPoint[]> {
+  const span = daysBetweenInclusive(range.start, range.end);
+  const weekly = span > 45;
+
+  const rows = await db
+    .select({
+      status: tasks.status,
+      completedAt: tasks.completedAt,
+      createdAt: tasks.createdAt,
+    })
+    .from(tasks);
+
+  const bucketKey = (ymd: string) => (weekly ? weekStart(ymd) : ymd);
+
+  const keys: string[] = [];
+  if (weekly) {
+    let cursor = weekStart(range.start);
+    const last = weekStart(range.end);
+    while (cursor <= last) {
+      keys.push(cursor);
+      cursor = addDays(cursor, 7);
+    }
+  } else {
+    let cursor = range.start;
+    while (cursor <= range.end) {
+      keys.push(cursor);
+      cursor = addDays(cursor, 1);
+    }
+  }
+
+  const completedMap = new Map<string, number>();
+  const createdMap = new Map<string, number>();
+  for (const key of keys) {
+    completedMap.set(key, 0);
+    createdMap.set(key, 0);
+  }
+
+  for (const row of rows) {
+    const createdYmd = completedDateStr(row.createdAt);
+    if (createdYmd >= range.start && createdYmd <= range.end) {
+      const key = bucketKey(createdYmd);
+      if (createdMap.has(key)) {
+        createdMap.set(key, (createdMap.get(key) ?? 0) + 1);
+      }
+    }
+    if (row.status === "done" && row.completedAt) {
+      const doneYmd = completedDateStr(row.completedAt);
+      if (doneYmd >= range.start && doneYmd <= range.end) {
+        const key = bucketKey(doneYmd);
+        if (completedMap.has(key)) {
+          completedMap.set(key, (completedMap.get(key) ?? 0) + 1);
+        }
+      }
+    }
+  }
+
+  return keys.map((key) => ({
+    key,
+    label: weekly ? formatShortDate(key) : formatShortDate(key),
+    completed: completedMap.get(key) ?? 0,
+    created: createdMap.get(key) ?? 0,
+  }));
+}
+
+export type DailyMinutesSeries = {
+  areaId: number;
+  name: string;
+  color: string;
+  slug: string;
+};
+
+export type DailyMinutesPoint = {
+  date: string;
+  label: string;
+  totalHours: number;
+  /** Hours per area keyed by area slug for stacked bars. */
+  [areaSlug: string]: string | number;
+};
+
+export type DailyMinutesChartData = {
+  series: DailyMinutesSeries[];
+  points: DailyMinutesPoint[];
+};
+
+/** Minutes logged per day in range, stacked by area (as hours). */
+export async function getDailyMinutes(range: {
+  start: string;
+  end: string;
+}): Promise<DailyMinutesChartData> {
+  const activeAreas = await getActiveAreas();
+  const series: DailyMinutesSeries[] = activeAreas.map((area) => ({
+    areaId: area.id,
+    name: area.name,
+    color: area.color,
+    slug: area.slug,
+  }));
+
+  const logRows = await db
+    .select({
+      logDate: timeLogs.logDate,
+      areaId: timeLogs.areaId,
+      minutes: timeLogs.minutes,
+    })
+    .from(timeLogs)
+    .where(
+      and(gte(timeLogs.logDate, range.start), lte(timeLogs.logDate, range.end)),
+    );
+
+  const minutesByDateArea = new Map<string, number>();
+  for (const row of logRows) {
+    const key = `${row.logDate}:${row.areaId}`;
+    minutesByDateArea.set(
+      key,
+      (minutesByDateArea.get(key) ?? 0) + row.minutes,
+    );
+  }
+
+  const points: DailyMinutesPoint[] = [];
+  let cursor = range.start;
+  while (cursor <= range.end) {
+    const point: DailyMinutesPoint = {
+      date: cursor,
+      label: formatShortDate(cursor),
+      totalHours: 0,
+    };
+    let totalMinutes = 0;
+    for (const area of series) {
+      const mins = minutesByDateArea.get(`${cursor}:${area.areaId}`) ?? 0;
+      totalMinutes += mins;
+      point[area.slug] = minutesToHours(mins);
+    }
+    point.totalHours = minutesToHours(totalMinutes);
+    points.push(point);
+    cursor = addDays(cursor, 1);
+  }
+
+  return { series, points };
+}
+
+/**
+ * Hours by area for an arbitrary date range.
+ * Weekly targets are scaled by daysInRange / 7.
+ */
+export async function getHoursByAreaForRange(range: {
+  start: string;
+  end: string;
+}): Promise<WeekAreaHours[]> {
+  const days = daysBetweenInclusive(range.start, range.end);
+  const scale = days / 7;
+
+  const [activeAreas, logRows] = await Promise.all([
+    getActiveAreas(),
+    db
+      .select({
+        areaId: timeLogs.areaId,
+        minutes: timeLogs.minutes,
+      })
+      .from(timeLogs)
+      .where(
+        and(
+          gte(timeLogs.logDate, range.start),
+          lte(timeLogs.logDate, range.end),
+        ),
+      ),
+  ]);
+
+  const loggedByArea = new Map<number, number>();
+  for (const row of logRows) {
+    loggedByArea.set(
+      row.areaId,
+      (loggedByArea.get(row.areaId) ?? 0) + row.minutes,
+    );
+  }
+
+  return activeAreas.map((area) => ({
+    areaId: area.id,
+    name: area.name,
+    color: area.color,
+    loggedMinutes: loggedByArea.get(area.id) ?? 0,
+    targetMinutes:
+      area.weeklyTargetMinutes != null
+        ? Math.round(area.weeklyTargetMinutes * scale)
+        : null,
+  }));
+}
+
+export type TimeLogDrillRow = {
+  id: number;
+  logDate: string;
+  minutes: number;
+  note: string | null;
+  taskTitle: string | null;
+  areaId: number;
+  areaName: string;
+  areaColor: string;
+};
+
+/** Time logs for an area within a range (hours-by-area drill-down). */
+export async function getTimeLogsForAreaRange(filter: {
+  areaId: number;
+  rangeStart: string;
+  rangeEnd: string;
+}): Promise<TimeLogDrillRow[]> {
+  const rows = await db
+    .select({
+      id: timeLogs.id,
+      logDate: timeLogs.logDate,
+      minutes: timeLogs.minutes,
+      note: timeLogs.note,
+      areaId: timeLogs.areaId,
+      areaName: areas.name,
+      areaColor: areas.color,
+      taskTitle: tasks.title,
+    })
+    .from(timeLogs)
+    .innerJoin(areas, eq(timeLogs.areaId, areas.id))
+    .leftJoin(tasks, eq(timeLogs.taskId, tasks.id))
+    .where(
+      and(
+        eq(timeLogs.areaId, filter.areaId),
+        gte(timeLogs.logDate, filter.rangeStart),
+        lte(timeLogs.logDate, filter.rangeEnd),
+      ),
+    )
+    .orderBy(desc(timeLogs.logDate), desc(timeLogs.createdAt));
+
+  return rows.map((row) => ({
+    id: row.id,
+    logDate: row.logDate,
+    minutes: row.minutes,
+    note: row.note,
+    taskTitle: row.taskTitle,
+    areaId: row.areaId,
+    areaName: row.areaName,
+    areaColor: row.areaColor,
+  }));
+}
+
+export type HabitRateSummary = {
+  habitChecksDone: number;
+  habitPossible: number;
+  habitRatePercent: number | null;
+  daysElapsed: number;
+};
+
+/** Habit completion rate for an arbitrary date range (up to today). */
+export async function getHabitRateForRange(range: {
+  start: string;
+  end: string;
+}): Promise<HabitRateSummary> {
+  const today = todayStr();
+  const effectiveEnd = range.end < today ? range.end : today;
+  const daysElapsed =
+    range.start > effectiveEnd
+      ? 0
+      : daysBetweenInclusive(range.start, effectiveEnd);
+
+  const activeHabits = await db
+    .select({ id: habits.id })
+    .from(habits)
+    .where(eq(habits.isActive, true));
+
+  const habitCount = activeHabits.length;
+  const habitPossible = habitCount * daysElapsed;
+
+  if (habitPossible === 0 || range.start > effectiveEnd) {
+    return {
+      habitChecksDone: 0,
+      habitPossible: 0,
+      habitRatePercent: null,
+      daysElapsed,
+    };
+  }
+
+  const habitCheckRows = await db
+    .select({
+      habitId: habitChecks.habitId,
+      checkDate: habitChecks.checkDate,
+      done: habitChecks.done,
+    })
+    .from(habitChecks)
+    .innerJoin(habits, eq(habitChecks.habitId, habits.id))
+    .where(
+      and(
+        eq(habits.isActive, true),
+        eq(habitChecks.done, true),
+        gte(habitChecks.checkDate, range.start),
+        lte(habitChecks.checkDate, effectiveEnd),
+      ),
+    );
+
+  const habitChecksDone = habitCheckRows.length;
+  const habitRatePercent = Math.round((habitChecksDone / habitPossible) * 100);
+
+  return {
+    habitChecksDone,
+    habitPossible,
+    habitRatePercent,
+    daysElapsed,
+  };
+}
+
+export type HabitHeatmapDay = {
+  date: string;
+  label: string;
+  done: number;
+  possible: number;
+  ratePercent: number | null;
+};
+
+export type HabitHeatmapData = {
+  start: string;
+  end: string;
+  days: HabitHeatmapDay[];
+};
+
+/** Daily habit completion intensity for the last `dayCount` days (incl. today). */
+export async function getHabitHeatmap(
+  dayCount = 30,
+): Promise<HabitHeatmapData> {
+  const end = todayStr();
+  const start = addDays(end, -(dayCount - 1));
+
+  const activeHabits = await db
+    .select({ id: habits.id })
+    .from(habits)
+    .where(eq(habits.isActive, true));
+
+  const possible = activeHabits.length;
+
+  const doneByDate = new Map<string, number>();
+  if (possible > 0) {
+    const habitIds = activeHabits.map((habit) => habit.id);
+    const checks = await db
+      .select({
+        checkDate: habitChecks.checkDate,
+      })
+      .from(habitChecks)
+      .where(
+        and(
+          inArray(habitChecks.habitId, habitIds),
+          eq(habitChecks.done, true),
+          gte(habitChecks.checkDate, start),
+          lte(habitChecks.checkDate, end),
+        ),
+      );
+
+    for (const check of checks) {
+      doneByDate.set(
+        check.checkDate,
+        (doneByDate.get(check.checkDate) ?? 0) + 1,
+      );
+    }
+  }
+
+  const days: HabitHeatmapDay[] = [];
+  let cursor = start;
+  while (cursor <= end) {
+    const done = doneByDate.get(cursor) ?? 0;
+    days.push({
+      date: cursor,
+      label: formatShortDate(cursor),
+      done,
+      possible,
+      ratePercent:
+        possible > 0 ? Math.round((done / possible) * 100) : null,
+    });
+    cursor = addDays(cursor, 1);
+  }
+
+  return { start, end, days };
 }
 

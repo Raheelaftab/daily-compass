@@ -3,9 +3,15 @@
 import { requireSession } from "@/lib/auth";
 import {
   getTasksForDrill,
+  getTimeLogsForAreaRange,
   type TaskWithArea,
   type TasksForDrillFilter,
+  type TimeLogDrillRow,
 } from "@/lib/queries";
+
+function isYmd(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
 
 export async function fetchDrillTasks(
   filter: TasksForDrillFilter,
@@ -20,10 +26,7 @@ export async function fetchDrillTasks(
     return { ok: false, error: "Invalid bucket" };
   }
 
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(filter.rangeStart) ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(filter.rangeEnd)
-  ) {
+  if (!isYmd(filter.rangeStart) || !isYmd(filter.rangeEnd)) {
     return { ok: false, error: "Invalid range" };
   }
 
@@ -36,4 +39,24 @@ export async function fetchDrillTasks(
 
   const tasks = await getTasksForDrill(filter);
   return { ok: true, tasks };
+}
+
+export async function fetchDrillTimeLogs(filter: {
+  areaId: number;
+  rangeStart: string;
+  rangeEnd: string;
+}): Promise<
+  { ok: true; logs: TimeLogDrillRow[] } | { ok: false; error: string }
+> {
+  await requireSession();
+
+  if (!Number.isInteger(filter.areaId) || filter.areaId < 1) {
+    return { ok: false, error: "Invalid area" };
+  }
+  if (!isYmd(filter.rangeStart) || !isYmd(filter.rangeEnd)) {
+    return { ok: false, error: "Invalid range" };
+  }
+
+  const logs = await getTimeLogsForAreaRange(filter);
+  return { ok: true, logs };
 }

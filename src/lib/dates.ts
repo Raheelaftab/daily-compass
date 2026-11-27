@@ -41,6 +41,23 @@ export function addDays(dateStr: string, n: number): string {
   return format(dfAddDays(date, n), "yyyy-MM-dd");
 }
 
+/** Inclusive day count between two YYYY-MM-DD strings (start ≤ end). */
+export function daysBetweenInclusive(start: string, end: string): number {
+  let count = 0;
+  let cursor = start;
+  while (cursor <= end) {
+    count += 1;
+    cursor = addDays(cursor, 1);
+  }
+  return count;
+}
+
+/** Format YYYY-MM-DD as a short axis label (e.g. "Nov 26"). */
+export function formatShortDate(dateStr: string): string {
+  const date = parseYmdInAppTz(dateStr);
+  return format(date, "MMM d");
+}
+
 /** Human-readable display for a YYYY-MM-DD string. */
 export function formatDisplay(dateStr: string): string {
   const date = parseYmdInAppTz(dateStr);

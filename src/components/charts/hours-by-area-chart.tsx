@@ -19,10 +19,15 @@ import type { WeekAreaHours } from "@/lib/queries";
 
 type HoursByAreaChartProps = {
   data: WeekAreaHours[];
+  onLoggedBarClick?: (areaId: number) => void;
 };
 
-export function HoursByAreaChart({ data }: HoursByAreaChartProps) {
+export function HoursByAreaChart({
+  data,
+  onLoggedBarClick,
+}: HoursByAreaChartProps) {
   const chartData = data.map((row) => ({
+    areaId: row.areaId,
     name: row.name,
     color: areaHex(row.color),
     logged: minutesToHours(row.loggedMinutes),
@@ -63,6 +68,16 @@ export function HoursByAreaChart({ data }: HoursByAreaChartProps) {
             name="Logged"
             radius={[0, 4, 4, 0]}
             barSize={12}
+            className={onLoggedBarClick ? "cursor-pointer" : undefined}
+            onClick={(item) => {
+              if (!onLoggedBarClick) return;
+              const payload = (
+                item as { payload?: { areaId?: number } }
+              ).payload;
+              if (typeof payload?.areaId === "number") {
+                onLoggedBarClick(payload.areaId);
+              }
+            }}
           >
             {chartData.map((entry) => (
               <Cell key={entry.name} fill={entry.color} />

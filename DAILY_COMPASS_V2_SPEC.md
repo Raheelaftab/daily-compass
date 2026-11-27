@@ -166,7 +166,7 @@ Replies are short, plain text with task ids so commands can be chained.
 - **Done when:** clicking any card/bar shows exactly those tasks and actions work.
 
 ### Session 3 — Dashboard: trends
-- [ ] Completed vs created trend, daily time chart, clickable hours-by-area, habit heatmap
+- [x] Completed vs created trend, daily time chart, clickable hours-by-area, habit heatmap
 - **Done when:** all widgets follow the range and look right at 375px and on desktop.
 
 ### Session 4 — Recurring tasks
