@@ -53,6 +53,8 @@ export type TaskWithArea = {
   top3For: string | null;
   completedAt: string | null;
   createdAt: string;
+  recurrence: string | null;
+  recurrenceParentId: number | null;
   areaName: string;
   areaColor: string;
 };
@@ -131,6 +133,8 @@ export async function getTasks(
       top3For: tasks.top3For,
       completedAt: tasks.completedAt,
       createdAt: tasks.createdAt,
+      recurrence: tasks.recurrence,
+      recurrenceParentId: tasks.recurrenceParentId,
       areaName: areas.name,
       areaColor: areas.color,
     })
@@ -138,20 +142,7 @@ export async function getTasks(
     .innerJoin(areas, eq(tasks.areaId, areas.id))
     .where(whereClause);
 
-  const mapped: TaskWithArea[] = rows.map((row) => ({
-    id: row.id,
-    areaId: row.areaId,
-    title: row.title,
-    notes: row.notes,
-    priority: row.priority,
-    status: row.status,
-    dueDate: row.dueDate,
-    top3For: row.top3For,
-    completedAt: row.completedAt ? row.completedAt.toISOString() : null,
-    createdAt: row.createdAt.toISOString(),
-    areaName: row.areaName,
-    areaColor: row.areaColor,
-  }));
+  const mapped: TaskWithArea[] = rows.map((row) => mapTaskRow(row));
 
   mapped.sort((a, b) => {
     const aOverdue =
@@ -250,6 +241,8 @@ function mapTaskRow(row: {
   top3For: string | null;
   completedAt: Date | null;
   createdAt: Date;
+  recurrence: string | null;
+  recurrenceParentId: number | null;
   areaName: string;
   areaColor: string;
 }): TaskWithArea {
@@ -264,6 +257,8 @@ function mapTaskRow(row: {
     top3For: row.top3For,
     completedAt: row.completedAt ? row.completedAt.toISOString() : null,
     createdAt: row.createdAt.toISOString(),
+    recurrence: row.recurrence,
+    recurrenceParentId: row.recurrenceParentId,
     areaName: row.areaName,
     areaColor: row.areaColor,
   };
@@ -311,6 +306,8 @@ export async function getTodayData(): Promise<TodayData> {
           top3For: tasks.top3For,
           completedAt: tasks.completedAt,
           createdAt: tasks.createdAt,
+          recurrence: tasks.recurrence,
+          recurrenceParentId: tasks.recurrenceParentId,
           areaName: areas.name,
           areaColor: areas.color,
         })
@@ -1061,6 +1058,8 @@ export async function getTasksForDrill(
       top3For: tasks.top3For,
       completedAt: tasks.completedAt,
       createdAt: tasks.createdAt,
+      recurrence: tasks.recurrence,
+      recurrenceParentId: tasks.recurrenceParentId,
       areaName: areas.name,
       areaColor: areas.color,
     })
@@ -1069,20 +1068,7 @@ export async function getTasksForDrill(
     .where(whereClause)
     .orderBy(desc(tasks.createdAt));
 
-  const mapped: TaskWithArea[] = rows.map((row) => ({
-    id: row.id,
-    areaId: row.areaId,
-    title: row.title,
-    notes: row.notes,
-    priority: row.priority,
-    status: row.status,
-    dueDate: row.dueDate,
-    top3For: row.top3For,
-    completedAt: row.completedAt ? row.completedAt.toISOString() : null,
-    createdAt: row.createdAt.toISOString(),
-    areaName: row.areaName,
-    areaColor: row.areaColor,
-  }));
+  const mapped: TaskWithArea[] = rows.map((row) => mapTaskRow(row));
 
   if (filter.bucket === "completed") {
     return mapped.filter((task) => {

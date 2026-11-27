@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useTransition } from "react";
-import { MoreHorizontal, Star } from "lucide-react";
+import { MoreHorizontal, Repeat, Star } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/actions/tasks";
 import { areaDotClass } from "@/lib/areas";
 import type { TaskWithArea } from "@/lib/queries";
+import { parseRecurrence, recurrenceLabel } from "@/lib/recurrence";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,6 +38,8 @@ export function TaskRow({ task, today, onEdit }: TaskRowProps) {
   const isOverdue =
     task.dueDate != null && task.dueDate < today && !isDone;
   const isTop3 = task.top3For === today;
+  const isRecurring = parseRecurrence(task.recurrence) != null;
+  const repeatTitle = recurrenceLabel(task.recurrence) ?? "Repeats";
 
   function runStatus(status: TaskWithArea["status"]) {
     startTransition(async () => {
@@ -108,6 +111,14 @@ export function TaskRow({ task, today, onEdit }: TaskRowProps) {
           >
             {task.title}
           </p>
+          {isRecurring ? (
+            <span title={repeatTitle} className="mt-0.5 inline-flex shrink-0">
+              <Repeat
+                className="size-3.5 text-muted-foreground"
+                aria-label={repeatTitle}
+              />
+            </span>
+          ) : null}
           {isTop3 ? (
             <Star className="mt-0.5 size-3.5 shrink-0 fill-amber-400 text-amber-400" />
           ) : null}

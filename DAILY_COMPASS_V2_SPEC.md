@@ -170,7 +170,7 @@ Replies are short, plain text with task ids so commands can be chained.
 - **Done when:** all widgets follow the range and look right at 375px and on desktop.
 
 ### Session 4 — Recurring tasks
-- [ ] Repeat field, next-instance generation, icon, MCP support, tests (incl. no duplicates, weekly days, month-end)
+- [x] Repeat field, next-instance generation, icon, MCP support, tests (incl. no duplicates, weekly days, month-end)
 
 ### Session 5 — Timer
 - [ ] Start/stop, header pill, DB-backed, MCP tools, tests

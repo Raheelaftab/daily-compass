@@ -1,11 +1,13 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
+import { Repeat } from "lucide-react";
 import { toast } from "sonner";
 
 import { setTaskStatus, toggleTop3 } from "@/actions/tasks";
 import { areaDotClass } from "@/lib/areas";
 import type { TaskWithArea } from "@/lib/queries";
+import { parseRecurrence, recurrenceLabel } from "@/lib/recurrence";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -127,6 +129,19 @@ export function Top3Section({ today, top3, openTasks }: Top3SectionProps) {
                     >
                       {task.title}
                     </p>
+                    {parseRecurrence(task.recurrence) ? (
+                      <span
+                        title={recurrenceLabel(task.recurrence) ?? "Repeats"}
+                        className="mt-0.5 inline-flex shrink-0"
+                      >
+                        <Repeat
+                          className="size-3.5 text-muted-foreground"
+                          aria-label={
+                            recurrenceLabel(task.recurrence) ?? "Repeats"
+                          }
+                        />
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-0.5 pl-4 text-xs text-muted-foreground">
                     {task.areaName}

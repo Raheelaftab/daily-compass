@@ -73,7 +73,7 @@ export function registerDailyCompassTools(server: McpServer): void {
     {
       title: "Create task",
       description:
-        "Create a task. Requires title and area slug (from list_areas). Optional priority (high/medium/low), dueDate (YYYY-MM-DD), and notes.",
+        "Create a task. Requires title and area slug (from list_areas). Optional priority (high/medium/low), dueDate (YYYY-MM-DD), notes, and recurrence (null | daily | weekdays | weekly:MON,WED | monthly:15).",
       inputSchema: createTaskMcpSchema,
     },
     async (args) => runTool(() => service.createTask(args)),
@@ -84,7 +84,7 @@ export function registerDailyCompassTools(server: McpServer): void {
     {
       title: "Update task",
       description:
-        "Update a task by id. Pass any of title, priority, dueDate (null to clear), status (todo/in_progress/done), or notes. At least one field required.",
+        "Update a task by id. Pass any of title, priority, dueDate (null to clear), status (todo/in_progress/done), notes, or recurrence (null to clear; daily | weekdays | weekly:MON,WED | monthly:15). Marking done spawns the next recurring instance. Recurrence edits affect this task only. At least one field required.",
       inputSchema: updateTaskMcpSchema,
     },
     async (args) => runTool(() => service.updateTask(args)),

@@ -9,6 +9,7 @@ import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { requireSession } from "@/lib/auth";
 import { todayStr } from "@/lib/dates";
 import { countTop3ForToday } from "@/lib/queries";
+import { spawnNextRecurringTask } from "@/lib/recurrence-spawn";
 import {
   createTaskSchema,
   setTaskStatusSchema,
@@ -31,7 +32,7 @@ export async function createTask(input: unknown): Promise<ActionResult> {
     return fail(parsed.error.issues[0]?.message ?? "Invalid task");
   }
 
-  const { title, areaId, priority, dueDate, notes } = parsed.data;
+  const { title, areaId, priority, dueDate, notes, recurrence } = parsed.data;
 
   await db.insert(tasks).values({
     title,
@@ -39,6 +40,7 @@ export async function createTask(input: unknown): Promise<ActionResult> {
     priority,
     dueDate: dueDate ?? null,
     notes: notes ?? null,
+    recurrence: recurrence === undefined ? null : recurrence,
   });
 
   revalidateTaskPaths();
@@ -53,7 +55,8 @@ export async function updateTask(input: unknown): Promise<ActionResult> {
     return fail(parsed.error.issues[0]?.message ?? "Invalid task");
   }
 
-  const { id, title, areaId, priority, dueDate, notes } = parsed.data;
+  const { id, title, areaId, priority, dueDate, notes, recurrence } =
+    parsed.data;
 
   const [existing] = await db
     .select({ id: tasks.id })
@@ -65,6 +68,7 @@ export async function updateTask(input: unknown): Promise<ActionResult> {
     return fail("Task not found");
   }
 
+  // Recurrence changes apply only to this task (future instances unchanged).
   await db
     .update(tasks)
     .set({
@@ -73,6 +77,7 @@ export async function updateTask(input: unknown): Promise<ActionResult> {
       priority,
       dueDate: dueDate ?? null,
       notes: notes ?? null,
+      recurrence: recurrence === undefined ? null : recurrence,
     })
     .where(eq(tasks.id, id));
 
@@ -91,7 +96,16 @@ export async function setTaskStatus(input: unknown): Promise<ActionResult> {
   const { id, status } = parsed.data;
 
   const [existing] = await db
-    .select({ id: tasks.id })
+    .select({
+      id: tasks.id,
+      title: tasks.title,
+      areaId: tasks.areaId,
+      priority: tasks.priority,
+      notes: tasks.notes,
+      recurrence: tasks.recurrence,
+      dueDate: tasks.dueDate,
+      status: tasks.status,
+    })
     .from(tasks)
     .where(eq(tasks.id, id))
     .limit(1);
@@ -107,6 +121,18 @@ export async function setTaskStatus(input: unknown): Promise<ActionResult> {
       completedAt: status === "done" ? new Date() : null,
     })
     .where(eq(tasks.id, id));
+
+  if (status === "done" && existing.status !== "done") {
+    await spawnNextRecurringTask({
+      id: existing.id,
+      title: existing.title,
+      areaId: existing.areaId,
+      priority: existing.priority,
+      notes: existing.notes,
+      recurrence: existing.recurrence,
+      dueDate: existing.dueDate,
+    });
+  }
 
   revalidateTaskPaths();
   return ok();

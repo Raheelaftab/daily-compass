@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isValidRecurrenceString, serializeRecurrence, parseRecurrence } from "@/lib/recurrence";
+
 export const loginSchema = z.object({
   email: z.email(),
   password: z.string().min(1),
@@ -20,12 +22,30 @@ const optionalNotes = z
   .optional()
   .transform((value) => (value === "" || value == null ? undefined : value));
 
+/** null / "" / "none" clear recurrence; otherwise stored recurrence string. */
+export const recurrenceFieldSchema = z
+  .union([z.null(), z.string()])
+  .optional()
+  .transform((value, ctx) => {
+    if (value === undefined) return undefined;
+    if (value == null || value === "" || value === "none") return null;
+    if (!isValidRecurrenceString(value)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Invalid recurrence",
+      });
+      return z.NEVER;
+    }
+    return serializeRecurrence(parseRecurrence(value));
+  });
+
 export const createTaskSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200),
   areaId: z.coerce.number().int().positive(),
   priority: taskPrioritySchema.default("medium"),
   dueDate: optionalDate,
   notes: optionalNotes,
+  recurrence: recurrenceFieldSchema,
 });
 
 export const updateTaskSchema = createTaskSchema.extend({

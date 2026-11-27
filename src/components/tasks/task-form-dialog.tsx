@@ -25,6 +25,10 @@ import {
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { AreaRow, TaskWithArea } from "@/lib/queries";
+import {
+  formToRecurrenceString,
+  recurrenceToForm,
+} from "@/lib/recurrence";
 
 type TaskFormDialogProps = {
   open: boolean;
@@ -40,6 +44,7 @@ function emptyValues(areas: AreaRow[]): TaskFormValues {
     priority: "medium",
     dueDate: "",
     notes: "",
+    recurrence: recurrenceToForm(null),
   };
 }
 
@@ -50,6 +55,7 @@ function valuesFromTask(task: TaskWithArea): TaskFormValues {
     priority: task.priority,
     dueDate: task.dueDate ?? "",
     notes: task.notes ?? "",
+    recurrence: recurrenceToForm(task.recurrence),
   };
 }
 
@@ -77,12 +83,22 @@ function TaskFormDialogInner({
     }
 
     startTransition(async () => {
+      const recurrence = formToRecurrenceString(values.recurrence);
+      if (
+        values.recurrence.kind === "weekly" &&
+        values.recurrence.weeklyDays.length === 0
+      ) {
+        toast.error("Pick at least one weekday");
+        return;
+      }
+
       const payload = {
         title: values.title,
         areaId: Number(values.areaId),
         priority: values.priority,
         dueDate: values.dueDate,
         notes: values.notes,
+        recurrence,
       };
 
       const result = isEdit

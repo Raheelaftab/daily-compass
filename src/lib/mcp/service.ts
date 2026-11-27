@@ -9,6 +9,7 @@ import {
   getWeekStats,
   type TaskStatusFilter,
 } from "@/lib/queries";
+import { spawnNextRecurringTask } from "@/lib/recurrence-spawn";
 
 import type {
   CreateTaskMcpInput,
@@ -118,6 +119,7 @@ export async function createTask(input: CreateTaskMcpInput) {
       priority: input.priority,
       dueDate: input.dueDate ?? null,
       notes: input.notes ?? null,
+      recurrence: input.recurrence === undefined ? null : input.recurrence,
     })
     .returning({
       id: tasks.id,
@@ -127,6 +129,7 @@ export async function createTask(input: CreateTaskMcpInput) {
       status: tasks.status,
       dueDate: tasks.dueDate,
       notes: tasks.notes,
+      recurrence: tasks.recurrence,
     });
 
   return {
@@ -138,7 +141,16 @@ export async function createTask(input: CreateTaskMcpInput) {
 
 export async function updateTask(input: UpdateTaskMcpInput) {
   const [existing] = await db
-    .select({ id: tasks.id })
+    .select({
+      id: tasks.id,
+      title: tasks.title,
+      areaId: tasks.areaId,
+      priority: tasks.priority,
+      notes: tasks.notes,
+      recurrence: tasks.recurrence,
+      dueDate: tasks.dueDate,
+      status: tasks.status,
+    })
     .from(tasks)
     .where(eq(tasks.id, input.id))
     .limit(1);
@@ -154,12 +166,15 @@ export async function updateTask(input: UpdateTaskMcpInput) {
     notes?: string | null;
     status?: "todo" | "in_progress" | "done";
     completedAt?: Date | null;
+    recurrence?: string | null;
   } = {};
 
   if (input.title !== undefined) patch.title = input.title;
   if (input.priority !== undefined) patch.priority = input.priority;
   if (input.dueDate !== undefined) patch.dueDate = input.dueDate;
   if (input.notes !== undefined) patch.notes = input.notes ?? null;
+  // Recurrence changes apply only to this task (not already-spawned instances).
+  if (input.recurrence !== undefined) patch.recurrence = input.recurrence;
   if (input.status !== undefined) {
     patch.status = input.status;
     patch.completedAt = input.status === "done" ? new Date() : null;
@@ -178,7 +193,28 @@ export async function updateTask(input: UpdateTaskMcpInput) {
       dueDate: tasks.dueDate,
       notes: tasks.notes,
       top3For: tasks.top3For,
+      recurrence: tasks.recurrence,
     });
+
+  if (
+    input.status === "done" &&
+    existing.status !== "done" &&
+    updated
+  ) {
+    await spawnNextRecurringTask({
+      id: existing.id,
+      title: existing.title,
+      areaId: existing.areaId,
+      priority: existing.priority,
+      notes: existing.notes,
+      recurrence:
+        input.recurrence !== undefined
+          ? input.recurrence
+          : existing.recurrence,
+      dueDate:
+        input.dueDate !== undefined ? input.dueDate : existing.dueDate,
+    });
+  }
 
   return updated;
 }

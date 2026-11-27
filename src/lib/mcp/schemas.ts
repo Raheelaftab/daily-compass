@@ -1,7 +1,26 @@
 import { z } from "zod";
 
 import { AREA_COLOR_OPTIONS } from "@/lib/areas";
+import {
+  isValidRecurrenceString,
+  parseRecurrence,
+  serializeRecurrence,
+} from "@/lib/recurrence";
 import { taskPrioritySchema, taskStatusSchema } from "@/lib/validators";
+
+/** null / "" / "none" clear; otherwise daily | weekdays | weekly:… | monthly:… */
+const recurrenceMcpSchema = z
+  .union([z.null(), z.literal(""), z.literal("none"), z.string()])
+  .optional()
+  .transform((value, ctx) => {
+    if (value === undefined) return undefined;
+    if (value == null || value === "" || value === "none") return null;
+    if (!isValidRecurrenceString(value)) {
+      ctx.addIssue({ code: "custom", message: "Invalid recurrence" });
+      return z.NEVER;
+    }
+    return serializeRecurrence(parseRecurrence(value));
+  });
 
 const areaColorSchema = z.enum(AREA_COLOR_OPTIONS);
 
@@ -39,6 +58,7 @@ export const createTaskMcpSchema = z.object({
   priority: taskPrioritySchema.default("medium"),
   dueDate: optionalYmd,
   notes: optionalNotes,
+  recurrence: recurrenceMcpSchema,
 });
 
 export const updateTaskMcpSchema = z
@@ -57,6 +77,8 @@ export const updateTaskMcpSchema = z
       }),
     status: taskStatusSchema.optional(),
     notes: optionalNotes,
+    /** Pass null to clear recurrence. Affects this task only. */
+    recurrence: recurrenceMcpSchema,
   })
   .refine(
     (data) =>
@@ -64,7 +86,8 @@ export const updateTaskMcpSchema = z
       data.priority !== undefined ||
       data.dueDate !== undefined ||
       data.status !== undefined ||
-      data.notes !== undefined,
+      data.notes !== undefined ||
+      data.recurrence !== undefined,
     { message: "Provide at least one field to update" },
   );
 

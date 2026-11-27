@@ -74,6 +74,25 @@ describe("create_task schema", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("accepts and normalizes recurrence", () => {
+    const parsed = createTaskMcpSchema.parse({
+      title: "Standup",
+      areaSlug: "rinoviy",
+      recurrence: "weekly:WED,MON",
+    });
+    expect(parsed.recurrence).toBe("weekly:MON,WED");
+  });
+
+  it("rejects invalid recurrence", () => {
+    expect(
+      createTaskMcpSchema.safeParse({
+        title: "x",
+        areaSlug: "rinoviy",
+        recurrence: "yearly",
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("update_task schema", () => {
@@ -95,6 +114,14 @@ describe("update_task schema", () => {
     expect(
       updateTaskMcpSchema.safeParse({ id: 1, status: "finished" }).success,
     ).toBe(false);
+  });
+
+  it("accepts clearing recurrence", () => {
+    const parsed = updateTaskMcpSchema.parse({
+      id: 3,
+      recurrence: null,
+    });
+    expect(parsed.recurrence).toBeNull();
   });
 });
 
