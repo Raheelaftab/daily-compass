@@ -176,7 +176,7 @@ Replies are short, plain text with task ids so commands can be chained.
 - [x] Start/stop, header pill, DB-backed, MCP tools, tests
 
 ### Session 6 — PWA
-- [ ] Manifest, icons, service worker, offline page
+- [x] Manifest, icons, service worker, offline page
 - **Done when:** installable from Chrome (Android) and "Add to Home Screen" (iOS) opens standalone.
 
 ### Session 7 — Telegram bot

@@ -27,6 +27,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // PWA assets / offline fallback must be reachable without a session.
+  if (pathname === "/sw.js" || pathname === "/offline") {
+    return NextResponse.next();
+  }
+
   const isLogin = pathname === "/login";
   const loggedIn = await hasValidSession(request);
 
