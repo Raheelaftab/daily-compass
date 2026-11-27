@@ -7,6 +7,7 @@ import {
   listTasksSchema,
   logTimeMcpSchema,
   setTop3Schema,
+  updateAreaMcpSchema,
   updateTaskMcpSchema,
 } from "./schemas";
 import * as service from "./service";
@@ -120,5 +121,16 @@ export function registerDailyCompassTools(server: McpServer): void {
       inputSchema: getWeekSummarySchema,
     },
     async (args) => runTool(() => service.getWeekSummary(args)),
+  );
+
+  server.registerTool(
+    "update_area",
+    {
+      title: "Update area",
+      description:
+        "Update a life area by slug. Pass any of name, color, weeklyTargetHours (number of hours, or null to clear for log-only), or isActive. Use list_areas first to get slugs. At least one field besides slug is required.",
+      inputSchema: updateAreaMcpSchema,
+    },
+    async (args) => runTool(() => service.updateArea(args)),
   );
 }

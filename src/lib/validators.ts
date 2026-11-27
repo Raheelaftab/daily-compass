@@ -106,6 +106,7 @@ export const updateAreaSchema = z.object({
     "red",
     "green",
     "yellow",
+    "gray",
   ]),
   /** Hours as decimal string/number; empty string → log-only (null minutes). */
   weeklyTargetHours: z.union([

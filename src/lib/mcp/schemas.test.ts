@@ -7,6 +7,7 @@ import {
   listTasksSchema,
   logTimeMcpSchema,
   setTop3Schema,
+  updateAreaMcpSchema,
   updateTaskMcpSchema,
 } from "./schemas";
 
@@ -157,6 +158,58 @@ describe("get_week_summary schema", () => {
   it("rejects invalid weekStart", () => {
     expect(
       getWeekSummarySchema.safeParse({ weekStart: "not-a-date" }).success,
+    ).toBe(false);
+  });
+});
+
+describe("update_area schema", () => {
+  it("requires slug and at least one field", () => {
+    expect(updateAreaMcpSchema.safeParse({}).success).toBe(false);
+    expect(updateAreaMcpSchema.safeParse({ slug: "personal" }).success).toBe(
+      false,
+    );
+  });
+
+  it("accepts weeklyTargetHours as a number", () => {
+    const parsed = updateAreaMcpSchema.parse({
+      slug: "personal",
+      weeklyTargetHours: 2.5,
+    });
+    expect(parsed.weeklyTargetHours).toBe(2.5);
+  });
+
+  it("clears weeklyTargetHours when null or empty string", () => {
+    expect(
+      updateAreaMcpSchema.parse({
+        slug: "personal",
+        weeklyTargetHours: null,
+      }).weeklyTargetHours,
+    ).toBeNull();
+    expect(
+      updateAreaMcpSchema.parse({
+        slug: "personal",
+        weeklyTargetHours: "",
+      }).weeklyTargetHours,
+    ).toBeNull();
+  });
+
+  it("accepts name, color, and isActive", () => {
+    const parsed = updateAreaMcpSchema.parse({
+      slug: "personal",
+      name: "Personal",
+      color: "gray",
+      isActive: true,
+    });
+    expect(parsed.color).toBe("gray");
+    expect(parsed.isActive).toBe(true);
+  });
+
+  it("rejects invalid color", () => {
+    expect(
+      updateAreaMcpSchema.safeParse({
+        slug: "personal",
+        color: "pink",
+      }).success,
     ).toBe(false);
   });
 });

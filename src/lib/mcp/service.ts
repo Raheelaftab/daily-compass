@@ -16,6 +16,7 @@ import type {
   ListTasksInput,
   LogTimeMcpInput,
   SetTop3Input,
+  UpdateAreaMcpInput,
   UpdateTaskMcpInput,
 } from "./schemas";
 
@@ -32,8 +33,10 @@ async function findAreaBySlug(slug: string) {
       id: areas.id,
       name: areas.name,
       slug: areas.slug,
+      color: areas.color,
       weeklyTargetMinutes: areas.weeklyTargetMinutes,
       isActive: areas.isActive,
+      sortOrder: areas.sortOrder,
     })
     .from(areas)
     .where(eq(areas.slug, slug))
@@ -290,5 +293,48 @@ export async function getWeekSummary(input: GetWeekSummaryInput) {
     tasksCompleted: stats.tasksCompleted,
     tasksOpen: stats.tasksOpen,
     tasksOverdue: stats.tasksOverdue,
+  };
+}
+
+export async function updateArea(input: UpdateAreaMcpInput) {
+  const existing = await findAreaBySlug(input.slug);
+
+  const patch: {
+    name?: string;
+    color?: string;
+    weeklyTargetMinutes?: number | null;
+    isActive?: boolean;
+  } = {};
+
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.color !== undefined) patch.color = input.color;
+  if (input.isActive !== undefined) patch.isActive = input.isActive;
+  if (input.weeklyTargetHours !== undefined) {
+    patch.weeklyTargetMinutes =
+      input.weeklyTargetHours === null
+        ? null
+        : Math.round(input.weeklyTargetHours * 60);
+  }
+
+  const [updated] = await db
+    .update(areas)
+    .set(patch)
+    .where(eq(areas.id, existing.id))
+    .returning({
+      id: areas.id,
+      name: areas.name,
+      slug: areas.slug,
+      color: areas.color,
+      weeklyTargetMinutes: areas.weeklyTargetMinutes,
+      isActive: areas.isActive,
+      sortOrder: areas.sortOrder,
+    });
+
+  return {
+    ...updated,
+    weeklyTargetHours:
+      updated.weeklyTargetMinutes != null
+        ? minutesToHours(updated.weeklyTargetMinutes)
+        : null,
   };
 }

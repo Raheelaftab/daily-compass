@@ -42,10 +42,14 @@ export const tasks = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    /** null | "daily" | "weekdays" | "weekly:MON,WED" | "monthly:15" */
+    recurrence: text("recurrence"),
+    recurrenceParentId: integer("recurrence_parent_id"),
   },
   (t) => [
     index("tasks_status_due_idx").on(t.status, t.dueDate),
     index("tasks_top3_idx").on(t.top3For),
+    index("tasks_recurrence_parent_idx").on(t.recurrenceParentId),
   ],
 );
 
@@ -102,4 +106,25 @@ export const weeklyReviews = pgTable("weekly_reviews", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+});
+
+/** At most one running timer row (enforced in application logic). */
+export const timers = pgTable("timers", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").references(() => tasks.id, {
+    onDelete: "set null",
+  }),
+  areaId: integer("area_id")
+    .notNull()
+    .references(() => areas.id),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+  note: varchar("note", { length: 300 }),
+});
+
+/** Single-owner Telegram preferences (chat id set via /start pairing). */
+export const telegramSettings = pgTable("telegram_settings", {
+  id: serial("id").primaryKey(),
+  chatId: varchar("chat_id", { length: 50 }),
+  morningDigest: boolean("morning_digest").notNull().default(true),
+  eveningNudge: boolean("evening_nudge").notNull().default(true),
 });

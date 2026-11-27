@@ -1,6 +1,9 @@
 import { z } from "zod";
 
+import { AREA_COLOR_OPTIONS } from "@/lib/areas";
 import { taskPrioritySchema, taskStatusSchema } from "@/lib/validators";
+
+const areaColorSchema = z.enum(AREA_COLOR_OPTIONS);
 
 export const ymdDateSchema = z
   .string()
@@ -85,9 +88,38 @@ export const getWeekSummarySchema = z.object({
   weekStart: optionalYmd,
 });
 
+export const updateAreaMcpSchema = z
+  .object({
+    slug: z.string().trim().min(1, "Area slug is required"),
+    name: z.string().trim().min(1).max(60).optional(),
+    color: areaColorSchema.optional(),
+    /**
+     * Weekly target in hours. Pass null (or "") for log-only (clears target).
+     * Omit to leave unchanged.
+     */
+    weeklyTargetHours: z
+      .union([z.null(), z.literal(""), z.coerce.number().min(0).max(168)])
+      .optional()
+      .transform((value) => {
+        if (value === undefined) return undefined;
+        if (value === "" || value === null) return null;
+        return value;
+      }),
+    isActive: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      data.name !== undefined ||
+      data.color !== undefined ||
+      data.weeklyTargetHours !== undefined ||
+      data.isActive !== undefined,
+    { message: "Provide at least one field to update" },
+  );
+
 export type ListTasksInput = z.infer<typeof listTasksSchema>;
 export type CreateTaskMcpInput = z.infer<typeof createTaskMcpSchema>;
 export type UpdateTaskMcpInput = z.infer<typeof updateTaskMcpSchema>;
 export type SetTop3Input = z.infer<typeof setTop3Schema>;
 export type LogTimeMcpInput = z.infer<typeof logTimeMcpSchema>;
 export type GetWeekSummaryInput = z.infer<typeof getWeekSummarySchema>;
+export type UpdateAreaMcpInput = z.infer<typeof updateAreaMcpSchema>;

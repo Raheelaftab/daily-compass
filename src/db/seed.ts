@@ -52,6 +52,13 @@ const AREA_SEED = [
     color: "yellow",
     weeklyTargetMinutes: 60,
   },
+  {
+    sortOrder: 8,
+    name: "Personal",
+    slug: "personal",
+    color: "gray",
+    weeklyTargetMinutes: null,
+  },
 ] as const;
 
 const HABIT_SEED = [
@@ -126,7 +133,7 @@ async function seed() {
     }
   }
 
-  console.log("Seed complete: 7 areas, 4 habits");
+  console.log("Seed complete: 8 areas, 4 habits");
 }
 
 seed()

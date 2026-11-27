@@ -9,6 +9,7 @@ const AREA_DOT_CLASS: Record<string, string> = {
   red: "bg-red-500",
   green: "bg-green-500",
   yellow: "bg-yellow-500",
+  gray: "bg-neutral-500",
 };
 
 /** Hex colors for chart bars (aligned with area color names). */
@@ -20,6 +21,7 @@ const AREA_HEX: Record<string, string> = {
   red: "#ef4444",
   green: "#22c55e",
   yellow: "#eab308",
+  gray: "#737373",
 };
 
 export function areaDotClass(color: string, className?: string): string {
@@ -42,6 +44,7 @@ export const AREA_COLOR_OPTIONS = [
   "red",
   "green",
   "yellow",
+  "gray",
 ] as const;
 
 export type AreaColorName = (typeof AREA_COLOR_OPTIONS)[number];

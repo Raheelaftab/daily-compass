@@ -8,6 +8,13 @@
       "when": 1795142094183,
       "tag": "0000_sharp_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795748560617,
+      "tag": "0001_bumpy_the_renegades",
+      "breakpoints": true
     }
   ]
 }
