@@ -2,6 +2,8 @@ import { CompletionTrendChart } from "@/components/charts/completion-trend-chart
 import { DailyMinutesChart } from "@/components/charts/daily-minutes-chart";
 import { HabitHeatmap } from "@/components/dashboard/habit-heatmap";
 import { HoursByAreaSection } from "@/components/dashboard/hours-by-area-section";
+import { PrayerHeatmap } from "@/components/dashboard/prayer-heatmap";
+import { PrayersCard } from "@/components/dashboard/prayers-card";
 import { RangeSelector } from "@/components/dashboard/range-selector";
 import { TaskStatusOverviewSection } from "@/components/dashboard/task-status-overview";
 import {
@@ -20,6 +22,8 @@ import type {
   DailyMinutesChartData,
   HabitHeatmapData,
   HabitRateSummary,
+  PrayerDashboardSummary,
+  PrayerHeatmapData,
   TaskStatusOverview,
   WeekAreaHours,
   WeekStats,
@@ -34,6 +38,8 @@ type DashboardViewProps = {
   dailyMinutes: DailyMinutesChartData;
   habitRate: HabitRateSummary;
   habitHeatmap: HabitHeatmapData;
+  prayerSummary: PrayerDashboardSummary;
+  prayerHeatmap: PrayerHeatmapData;
 };
 
 function StatCard({
@@ -73,6 +79,8 @@ export function DashboardView({
   dailyMinutes,
   habitRate,
   habitHeatmap,
+  prayerSummary,
+  prayerHeatmap,
 }: DashboardViewProps) {
   const totalLoggedMinutes = hoursByArea.reduce(
     (sum, row) => sum + row.loggedMinutes,
@@ -171,26 +179,35 @@ export function DashboardView({
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-          Habits
+          Habits & prayers
         </h2>
-        <StatCard
-          label="Completion rate"
-          value={
-            habitRate.habitRatePercent != null
-              ? `${habitRate.habitRatePercent}%`
-              : "—"
-          }
-          hint={
-            habitRate.habitPossible > 0
-              ? `${habitRate.habitChecksDone} of ${habitRate.habitPossible} checks (${habitRate.daysElapsed} day${habitRate.daysElapsed === 1 ? "" : "s"} in range)`
-              : "No habit checks possible yet"
-          }
-        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <StatCard
+            label="Habit completion"
+            value={
+              habitRate.habitRatePercent != null
+                ? `${habitRate.habitRatePercent}%`
+                : "—"
+            }
+            hint={
+              habitRate.habitPossible > 0
+                ? `${habitRate.habitChecksDone} of ${habitRate.habitPossible} checks (${habitRate.daysElapsed} day${habitRate.daysElapsed === 1 ? "" : "s"} in range)`
+                : "No habit checks possible yet"
+            }
+          />
+          <PrayersCard summary={prayerSummary} />
+        </div>
         <div className="rounded-lg border p-3">
           <p className="mb-3 text-xs text-muted-foreground">
-            Last 30 days
+            Habits · last 30 days
           </p>
           <HabitHeatmap data={habitHeatmap} />
+        </div>
+        <div className="rounded-lg border p-3">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Prayers · last 30 days
+          </p>
+          <PrayerHeatmap data={prayerHeatmap} />
         </div>
       </section>
     </div>

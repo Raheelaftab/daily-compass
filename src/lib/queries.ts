@@ -7,6 +7,8 @@ import {
   areas,
   habitChecks,
   habits,
+  prayerLog,
+  prayerTimes,
   tasks,
   timeLogs,
   weeklyReviews,
@@ -28,6 +30,11 @@ import {
   weeksInMonth,
   weekStart,
 } from "@/lib/dates";
+import {
+  getOrCreatePrayerSettings,
+  isPrayerEnabled,
+} from "@/lib/prayer/settings";
+import { PRAYER_LABELS, PRAYER_NAMES } from "@/lib/prayer/types";
 import { bestStreak, currentStreak } from "@/lib/streaks";
 
 export type TaskStatusFilter = "open" | "done" | "all";
@@ -1662,6 +1669,150 @@ export async function getHabitHeatmap(
       possible,
       ratePercent:
         possible > 0 ? Math.round((done / possible) * 100) : null,
+    });
+    cursor = addDays(cursor, 1);
+  }
+
+  return { start, end, days };
+}
+
+export type PrayerDotStatus = "prayed" | "missed" | "pending" | "upcoming";
+
+export type PrayerDashboardSummary = {
+  today: string;
+  dots: Array<{ prayer: string; label: string; status: PrayerDotStatus; time: string | null }>;
+  weekPrayed: number;
+  weekPossible: number;
+};
+
+export type PrayerHeatmapDay = {
+  date: string;
+  label: string;
+  prayed: number;
+  possible: number;
+  ratePercent: number | null;
+};
+
+export type PrayerHeatmapData = {
+  start: string;
+  end: string;
+  days: PrayerHeatmapDay[];
+};
+
+/** Today prayer dots + this week's prayed count (enabled prayers only). */
+export async function getPrayerDashboardSummary(): Promise<PrayerDashboardSummary> {
+  const today = todayStr();
+  const start = weekStart(today);
+  const settings = await getOrCreatePrayerSettings();
+  const enabled = PRAYER_NAMES.filter((p) => isPrayerEnabled(settings, p));
+
+  const [timesRow] = await db
+    .select()
+    .from(prayerTimes)
+    .where(eq(prayerTimes.prayerDate, today))
+    .limit(1);
+
+  const todayLogs = await db
+    .select({
+      prayer: prayerLog.prayer,
+      status: prayerLog.status,
+    })
+    .from(prayerLog)
+    .where(eq(prayerLog.prayerDate, today));
+
+  const statusMap = new Map(todayLogs.map((row) => [row.prayer, row.status]));
+
+  const dots = PRAYER_NAMES.map((prayer) => {
+    const time = timesRow ? timesRow[prayer] : null;
+    const raw = statusMap.get(prayer);
+    let status: PrayerDotStatus = "upcoming";
+    if (!isPrayerEnabled(settings, prayer)) {
+      status = "upcoming";
+    } else if (raw === "prayed") {
+      status = "prayed";
+    } else if (raw === "missed") {
+      status = "missed";
+    } else if (raw === "pending") {
+      status = "pending";
+    }
+    return {
+      prayer,
+      label: PRAYER_LABELS[prayer],
+      status,
+      time,
+    };
+  });
+
+  const weekLogs = await db
+    .select({
+      prayerDate: prayerLog.prayerDate,
+      prayer: prayerLog.prayer,
+      status: prayerLog.status,
+    })
+    .from(prayerLog)
+    .where(
+      and(
+        gte(prayerLog.prayerDate, start),
+        lte(prayerLog.prayerDate, today),
+        eq(prayerLog.status, "prayed"),
+      ),
+    );
+
+  const enabledSet = new Set(enabled);
+  const weekPrayed = weekLogs.filter((row) => enabledSet.has(row.prayer)).length;
+  const daysElapsed = daysBetweenInclusive(start, today);
+  const weekPossible = enabled.length * daysElapsed;
+
+  return { today, dots, weekPrayed, weekPossible };
+}
+
+/** Daily prayer completion intensity for the last `dayCount` days. */
+export async function getPrayerHeatmap(
+  dayCount = 30,
+): Promise<PrayerHeatmapData> {
+  const end = todayStr();
+  const start = addDays(end, -(dayCount - 1));
+  const settings = await getOrCreatePrayerSettings();
+  const enabled = PRAYER_NAMES.filter((p) => isPrayerEnabled(settings, p));
+  const possible = enabled.length;
+  const enabledSet = new Set(enabled);
+
+  const prayedByDate = new Map<string, number>();
+  if (possible > 0) {
+    const logs = await db
+      .select({
+        prayerDate: prayerLog.prayerDate,
+        prayer: prayerLog.prayer,
+      })
+      .from(prayerLog)
+      .where(
+        and(
+          eq(prayerLog.status, "prayed"),
+          gte(prayerLog.prayerDate, start),
+          lte(prayerLog.prayerDate, end),
+        ),
+      );
+
+    for (const row of logs) {
+      if (!enabledSet.has(row.prayer)) continue;
+      prayedByDate.set(
+        row.prayerDate,
+        (prayedByDate.get(row.prayerDate) ?? 0) + 1,
+      );
+    }
+  }
+
+  const days: PrayerHeatmapDay[] = [];
+  let cursor = start;
+  while (cursor <= end) {
+    const prayed = prayedByDate.get(cursor) ?? 0;
+    days.push({
+      date: cursor,
+      label: formatShortDate(cursor),
+      prayed,
+      possible,
+      ratePercent:
+        possible > 0 ? Math.round((prayed / possible) * 100) : null,
     });
     cursor = addDays(cursor, 1);
   }

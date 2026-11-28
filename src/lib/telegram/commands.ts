@@ -3,6 +3,9 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { areas, tasks, timeLogs } from "@/db/schema";
 import { formatMinutes, todayStr, weekStart } from "@/lib/dates";
+import { ensurePrayerLogsForDate } from "@/lib/prayer/log";
+import { ensurePrayerTimesForDate } from "@/lib/prayer/times";
+import { PRAYER_LABELS, PRAYER_NAMES } from "@/lib/prayer/types";
 import { countTop3ForToday, getTodayData, getWeekStats } from "@/lib/queries";
 import { spawnNextRecurringTask } from "@/lib/recurrence-spawn";
 import { verifyPairCode } from "@/lib/telegram/auth";
@@ -28,6 +31,7 @@ const HELP_TEXT = [
   "/start_timer <id|#area>",
   "/stop",
   "/week",
+  "/prayers — today's prayer times and status",
   "/help",
 ].join("\n");
 
@@ -93,6 +97,8 @@ export async function handleTelegramText(
       return await cmdStop();
     case "week":
       return await cmdWeek();
+    case "prayers":
+      return await cmdPrayers();
     default:
       return "Unknown command. Send /help.";
   }
@@ -308,6 +314,27 @@ async function cmdWeek(): Promise<string> {
     lines.push(`• ${row.name}: ${formatMinutes(row.loggedMinutes)}${target}`);
   }
   return lines.join("\n");
+}
+
+async function cmdPrayers(): Promise<string> {
+  const date = todayStr();
+  try {
+    const { times } = await ensurePrayerTimesForDate(date);
+    const logs = await ensurePrayerLogsForDate(date);
+    const statusByPrayer = new Map(logs.map((row) => [row.prayer, row.status]));
+    const lines: string[] = [`Prayers ${date}`];
+    for (const prayer of PRAYER_NAMES) {
+      const status = statusByPrayer.get(prayer) ?? "pending";
+      const mark =
+        status === "prayed" ? "✅" : status === "missed" ? "❌" : "⏳";
+      lines.push(
+        `${mark} ${PRAYER_LABELS[prayer]} ${times[prayer]} (${status})`,
+      );
+    }
+    return lines.join("\n");
+  } catch {
+    return "Could not load prayer times. Check Settings location.";
+  }
 }
 
 /** Build morning digest text (also used by cron). */

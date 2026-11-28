@@ -15,6 +15,27 @@
       "when": 1795748560617,
       "tag": "0001_bumpy_the_renegades",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795825714069,
+      "tag": "0002_friendly_crusher_hogan",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795825956779,
+      "tag": "0003_mute_brother_voodoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795826050000,
+      "tag": "0004_asr_school_shafi_data",
+      "breakpoints": true
     }
   ]
 }

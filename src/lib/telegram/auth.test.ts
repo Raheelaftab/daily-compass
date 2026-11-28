@@ -71,7 +71,14 @@ describe("cron bearer", () => {
     ).toBe(true);
     expect(
       verifyCronBearer(
-        new Request("http://localhost/api/cron/morning", {
+        new Request("http://localhost/api/cron/prayer", {
+          headers: { Authorization: "Bearer cron-secret" },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      verifyCronBearer(
+        new Request("http://localhost/api/cron/prayer", {
           headers: { Authorization: "Bearer wrong" },
         }),
       ),

@@ -13,6 +13,7 @@ describe("shouldBypassSessionAuth", () => {
     expect(shouldBypassSessionAuth("/api/telegram/")).toBe(true);
     expect(shouldBypassSessionAuth("/api/cron/morning")).toBe(true);
     expect(shouldBypassSessionAuth("/api/cron/evening")).toBe(true);
+    expect(shouldBypassSessionAuth("/api/cron/prayer")).toBe(true);
     expect(shouldBypassSessionAuth("/api/mcp")).toBe(true);
   });
 

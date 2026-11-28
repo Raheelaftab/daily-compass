@@ -100,6 +100,21 @@ Only that chat is accepted afterward. Use `/help` for commands. Toggle morning/e
 
 Cron schedules (UTC, Vercel Hobby): morning `0 13 * * *` → `/api/cron/morning`; evening `0 2 * * *` → `/api/cron/evening`.
 
+## Prayer reminders (cron-job.org)
+
+Prayer times are fetched once per day from [AlAdhan](https://aladhan.com/prayer-times-api) (default: Timonium MD / US, method **ISNA** `2`, Asr school **Standard/Shafi** `0`; Hanafi is `1`) and cached. A minute cron sends Telegram reminders with ✅ Prayed / ⏰ snooze buttons. Configure location and per-prayer toggles in **Settings**.
+
+1. Deploy so `https://<your-domain>/api/cron/prayer` is live and `CRON_SECRET` is set in Vercel.
+2. Pair the Telegram bot (see above) so reminders have a chat to send to.
+3. Create a job at [cron-job.org](https://cron-job.org):
+   - **URL:** `https://<your-domain>/api/cron/prayer`
+   - **Schedule:** every 1 minute
+   - **Request method:** GET (POST also works)
+   - **Header:** `Authorization` = `Bearer <CRON_SECRET>` (same value as the Vercel env var; never commit it)
+4. Optional: open the URL once with the header to confirm `{ "ok": true, ... }`. Wrong/missing auth returns **401**.
+
+Use `/prayers` in Telegram for today's times and status.
+
 ## Scripts
 
 | Script | Purpose |

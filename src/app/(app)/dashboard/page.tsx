@@ -12,6 +12,8 @@ import {
   getHabitHeatmap,
   getHabitRateForRange,
   getHoursByAreaForRange,
+  getPrayerDashboardSummary,
+  getPrayerHeatmap,
   getTaskStatusByArea,
   getWeekStats,
 } from "@/lib/queries";
@@ -40,6 +42,8 @@ async function DashboardPageContent({ searchParams }: DashboardPageProps) {
     hoursByArea,
     habitRate,
     habitHeatmap,
+    prayerSummary,
+    prayerHeatmap,
   ] = await Promise.all([
     getTaskStatusByArea(rangeKey),
     getWeekStats(legacyWeek),
@@ -48,6 +52,8 @@ async function DashboardPageContent({ searchParams }: DashboardPageProps) {
     getHoursByAreaForRange(rangeKey),
     getHabitRateForRange(rangeKey),
     getHabitHeatmap(30),
+    getPrayerDashboardSummary(),
+    getPrayerHeatmap(30),
   ]);
 
   return (
@@ -60,6 +66,8 @@ async function DashboardPageContent({ searchParams }: DashboardPageProps) {
       dailyMinutes={dailyMinutes}
       habitRate={habitRate}
       habitHeatmap={habitHeatmap}
+      prayerSummary={prayerSummary}
+      prayerHeatmap={prayerHeatmap}
     />
   );
 }

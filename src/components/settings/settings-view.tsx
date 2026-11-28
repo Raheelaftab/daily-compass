@@ -4,8 +4,11 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateArea } from "@/actions/areas";
+import { savePrayerSettings } from "@/actions/prayers";
 import { updateTelegramDigests } from "@/actions/telegram";
 import { AREA_COLOR_OPTIONS, areaDotClass } from "@/lib/areas";
+import type { PrayerSettingsRow } from "@/lib/prayer/settings";
+import { ASR_SCHOOLS, CALCULATION_METHODS } from "@/lib/prayer/types";
 import type { AreaRow } from "@/lib/queries";
 import type { TelegramSettingsRow } from "@/lib/telegram/settings";
 import { Button } from "@/components/ui/button";
@@ -23,6 +26,7 @@ import {
 type SettingsViewProps = {
   areas: AreaRow[];
   telegram: TelegramSettingsRow;
+  prayer: PrayerSettingsRow;
 };
 
 type AreaFormState = {
@@ -46,14 +50,32 @@ function toFormState(area: AreaRow): AreaFormState {
   };
 }
 
-export function SettingsView({ areas, telegram }: SettingsViewProps) {
+export function SettingsView({ areas, telegram, prayer }: SettingsViewProps) {
   const [forms, setForms] = useState<Record<number, AreaFormState>>(() =>
     Object.fromEntries(areas.map((area) => [area.id, toFormState(area)])),
   );
   const [morningDigest, setMorningDigest] = useState(telegram.morningDigest);
   const [eveningNudge, setEveningNudge] = useState(telegram.eveningNudge);
+  const [prayerForm, setPrayerForm] = useState({
+    city: prayer.city,
+    state: prayer.state,
+    country: prayer.country,
+    latitude: prayer.latitude ?? "",
+    longitude: prayer.longitude ?? "",
+    method: String(prayer.method),
+    school: String(prayer.school),
+    snoozeOptionAMinutes: String(prayer.snoozeOptionAMinutes),
+    snoozeOptionBMinutes: String(prayer.snoozeOptionBMinutes),
+    reRemindIntervalMinutes: String(prayer.reRemindIntervalMinutes),
+    fajrEnabled: prayer.fajrEnabled,
+    dhuhrEnabled: prayer.dhuhrEnabled,
+    asrEnabled: prayer.asrEnabled,
+    maghribEnabled: prayer.maghribEnabled,
+    ishaEnabled: prayer.ishaEnabled,
+  });
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [digestPending, setDigestPending] = useState(false);
+  const [prayerPending, setPrayerPending] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function updateForm(id: number, patch: Partial<AreaFormState>) {
@@ -107,14 +129,266 @@ export function SettingsView({ areas, telegram }: SettingsViewProps) {
     });
   }
 
+  function onSavePrayer() {
+    setPrayerPending(true);
+    startTransition(async () => {
+      const result = await savePrayerSettings({
+        city: prayerForm.city,
+        state: prayerForm.state,
+        country: prayerForm.country,
+        latitude: prayerForm.latitude,
+        longitude: prayerForm.longitude,
+        method: Number(prayerForm.method),
+        school: Number(prayerForm.school),
+        snoozeOptionAMinutes: Number(prayerForm.snoozeOptionAMinutes),
+        snoozeOptionBMinutes: Number(prayerForm.snoozeOptionBMinutes),
+        reRemindIntervalMinutes: Number(prayerForm.reRemindIntervalMinutes),
+        fajrEnabled: prayerForm.fajrEnabled,
+        dhuhrEnabled: prayerForm.dhuhrEnabled,
+        asrEnabled: prayerForm.asrEnabled,
+        maghribEnabled: prayerForm.maghribEnabled,
+        ishaEnabled: prayerForm.ishaEnabled,
+      });
+      setPrayerPending(false);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Prayer settings saved");
+    });
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Edit life areas, colors, weekly hour targets, and Telegram digests
+          Edit life areas, Telegram digests, and prayer reminders
         </p>
       </div>
+
+      <section className="space-y-3 rounded-lg border p-4">
+        <div>
+          <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+            Prayer reminders
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Times from AlAdhan (ISNA + Standard/Shafi Asr by default). Reminders
+            go to the paired Telegram chat via cron-job.org every minute.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="prayer-city" className="text-sm font-medium">
+              City
+            </label>
+            <Input
+              id="prayer-city"
+              value={prayerForm.city}
+              onChange={(e) =>
+                setPrayerForm((p) => ({ ...p, city: e.target.value }))
+              }
+              className="h-11"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="prayer-state" className="text-sm font-medium">
+              State
+            </label>
+            <Input
+              id="prayer-state"
+              value={prayerForm.state}
+              onChange={(e) =>
+                setPrayerForm((p) => ({ ...p, state: e.target.value }))
+              }
+              className="h-11"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="prayer-country" className="text-sm font-medium">
+              Country
+            </label>
+            <Input
+              id="prayer-country"
+              value={prayerForm.country}
+              onChange={(e) =>
+                setPrayerForm((p) => ({ ...p, country: e.target.value }))
+              }
+              className="h-11"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="prayer-lat" className="text-sm font-medium">
+              Latitude (optional)
+            </label>
+            <Input
+              id="prayer-lat"
+              value={prayerForm.latitude}
+              onChange={(e) =>
+                setPrayerForm((p) => ({ ...p, latitude: e.target.value }))
+              }
+              placeholder="Uses city if empty"
+              className="h-11"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="prayer-lon" className="text-sm font-medium">
+              Longitude (optional)
+            </label>
+            <Input
+              id="prayer-lon"
+              value={prayerForm.longitude}
+              onChange={(e) =>
+                setPrayerForm((p) => ({ ...p, longitude: e.target.value }))
+              }
+              placeholder="Uses city if empty"
+              className="h-11"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Calculation method</span>
+            <Select
+              value={prayerForm.method}
+              onValueChange={(value) => {
+                if (value) setPrayerForm((p) => ({ ...p, method: value }));
+              }}
+            >
+              <SelectTrigger className="h-11 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CALCULATION_METHODS.map((method) => (
+                  <SelectItem key={method.id} value={String(method.id)}>
+                    {method.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Asr school</span>
+            <Select
+              value={prayerForm.school}
+              onValueChange={(value) => {
+                if (value) setPrayerForm((p) => ({ ...p, school: value }));
+              }}
+            >
+              <SelectTrigger className="h-11 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ASR_SCHOOLS.map((school) => (
+                  <SelectItem key={school.id} value={String(school.id)}>
+                    {school.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="prayer-snooze-a" className="text-sm font-medium">
+              Snooze A (min)
+            </label>
+            <Input
+              id="prayer-snooze-a"
+              type="number"
+              min={1}
+              max={180}
+              value={prayerForm.snoozeOptionAMinutes}
+              onChange={(e) =>
+                setPrayerForm((p) => ({
+                  ...p,
+                  snoozeOptionAMinutes: e.target.value,
+                }))
+              }
+              className="h-11"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="prayer-snooze-b" className="text-sm font-medium">
+              Snooze B (min)
+            </label>
+            <Input
+              id="prayer-snooze-b"
+              type="number"
+              min={1}
+              max={180}
+              value={prayerForm.snoozeOptionBMinutes}
+              onChange={(e) =>
+                setPrayerForm((p) => ({
+                  ...p,
+                  snoozeOptionBMinutes: e.target.value,
+                }))
+              }
+              className="h-11"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="prayer-reremind" className="text-sm font-medium">
+              Re-remind (min)
+            </label>
+            <Input
+              id="prayer-reremind"
+              type="number"
+              min={1}
+              max={180}
+              value={prayerForm.reRemindIntervalMinutes}
+              onChange={(e) =>
+                setPrayerForm((p) => ({
+                  ...p,
+                  reRemindIntervalMinutes: e.target.value,
+                }))
+              }
+              className="h-11"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(
+            [
+              ["fajrEnabled", "Fajr"],
+              ["dhuhrEnabled", "Dhuhr"],
+              ["asrEnabled", "Asr"],
+              ["maghribEnabled", "Maghrib"],
+              ["ishaEnabled", "Isha"],
+            ] as const
+          ).map(([key, label]) => (
+            <div key={key} className="flex min-h-11 items-center gap-3">
+              <Checkbox
+                id={`prayer-${key}`}
+                checked={prayerForm[key]}
+                onCheckedChange={(checked) =>
+                  setPrayerForm((p) => ({ ...p, [key]: Boolean(checked) }))
+                }
+                className="size-5"
+              />
+              <label htmlFor={`prayer-${key}`} className="text-sm font-medium">
+                Remind for {label}
+              </label>
+            </div>
+          ))}
+        </div>
+
+        <Button
+          type="button"
+          className="h-11"
+          onClick={onSavePrayer}
+          disabled={prayerPending}
+        >
+          {prayerPending ? "Saving…" : "Save prayer settings"}
+        </Button>
+      </section>
 
       <section className="space-y-3 rounded-lg border p-4">
         <div>

@@ -148,9 +148,34 @@ export const updateTelegramDigestsSchema = z
     { message: "Provide at least one toggle" },
   );
 
+export const updatePrayerSettingsSchema = z.object({
+  city: z.string().trim().min(1).max(100),
+  state: z.string().trim().min(1).max(50),
+  country: z.string().trim().min(1).max(50),
+  latitude: z
+    .union([z.literal(""), z.string().trim().max(20)])
+    .transform((value) => (value === "" ? null : value)),
+  longitude: z
+    .union([z.literal(""), z.string().trim().max(20)])
+    .transform((value) => (value === "" ? null : value)),
+  method: z.coerce.number().int().min(0).max(99),
+  school: z.coerce.number().int().min(0).max(1),
+  snoozeOptionAMinutes: z.coerce.number().int().min(1).max(180),
+  snoozeOptionBMinutes: z.coerce.number().int().min(1).max(180),
+  reRemindIntervalMinutes: z.coerce.number().int().min(1).max(180),
+  fajrEnabled: z.boolean(),
+  dhuhrEnabled: z.boolean(),
+  asrEnabled: z.boolean(),
+  maghribEnabled: z.boolean(),
+  ishaEnabled: z.boolean(),
+});
+
 export type SaveWeeklyReviewInput = z.infer<typeof saveWeeklyReviewSchema>;
 export type UpdateAreaInput = z.infer<typeof updateAreaSchema>;
 export type UpdateTelegramDigestsInput = z.infer<
   typeof updateTelegramDigestsSchema
+>;
+export type UpdatePrayerSettingsInput = z.infer<
+  typeof updatePrayerSettingsSchema
 >;
 

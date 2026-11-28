@@ -2,16 +2,18 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { SettingsView } from "@/components/settings/settings-view";
+import { getOrCreatePrayerSettings } from "@/lib/prayer/settings";
 import { getAllAreas } from "@/lib/queries";
 import { getOrCreateTelegramSettings } from "@/lib/telegram/settings";
 
 async function SettingsPageContent() {
   await connection();
-  const [areas, telegram] = await Promise.all([
+  const [areas, telegram, prayer] = await Promise.all([
     getAllAreas(),
     getOrCreateTelegramSettings(),
+    getOrCreatePrayerSettings(),
   ]);
-  return <SettingsView areas={areas} telegram={telegram} />;
+  return <SettingsView areas={areas} telegram={telegram} prayer={prayer} />;
 }
 
 export default function SettingsPage() {
