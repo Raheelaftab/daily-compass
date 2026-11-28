@@ -60,8 +60,8 @@ export function SettingsView({ areas, telegram, prayer }: SettingsViewProps) {
     city: prayer.city,
     state: prayer.state,
     country: prayer.country,
-    latitude: prayer.latitude ?? "",
-    longitude: prayer.longitude ?? "",
+    latitude: prayer.latitude || "39.437",
+    longitude: prayer.longitude || "-76.62",
     method: String(prayer.method),
     school: String(prayer.school),
     snoozeOptionAMinutes: String(prayer.snoozeOptionAMinutes),
@@ -173,8 +173,8 @@ export function SettingsView({ areas, telegram, prayer }: SettingsViewProps) {
             Prayer reminders
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Times from AlAdhan (ISNA + Standard/Shafi Asr by default). Reminders
-            go to the paired Telegram chat via cron-job.org every minute.
+            Times from AlAdhan by coordinates (Timonium 39.437, -76.62; ISNA +
+            Standard/Shafi). Reminders go to Telegram via cron-job.org.
           </p>
         </div>
 
@@ -223,7 +223,7 @@ export function SettingsView({ areas, telegram, prayer }: SettingsViewProps) {
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="prayer-lat" className="text-sm font-medium">
-              Latitude (optional)
+              Latitude
             </label>
             <Input
               id="prayer-lat"
@@ -231,13 +231,13 @@ export function SettingsView({ areas, telegram, prayer }: SettingsViewProps) {
               onChange={(e) =>
                 setPrayerForm((p) => ({ ...p, latitude: e.target.value }))
               }
-              placeholder="Uses city if empty"
+              placeholder="39.437"
               className="h-11"
             />
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="prayer-lon" className="text-sm font-medium">
-              Longitude (optional)
+              Longitude
             </label>
             <Input
               id="prayer-lon"
@@ -245,7 +245,7 @@ export function SettingsView({ areas, telegram, prayer }: SettingsViewProps) {
               onChange={(e) =>
                 setPrayerForm((p) => ({ ...p, longitude: e.target.value }))
               }
-              placeholder="Uses city if empty"
+              placeholder="-76.62"
               className="h-11"
             />
           </div>

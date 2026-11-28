@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { areas, tasks, timeLogs } from "@/db/schema";
 import { formatMinutes, todayStr, weekStart } from "@/lib/dates";
+import { logPrayerError } from "@/lib/prayer/errors";
 import { ensurePrayerLogsForDate } from "@/lib/prayer/log";
 import { ensurePrayerTimesForDate } from "@/lib/prayer/times";
 import { PRAYER_LABELS, PRAYER_NAMES } from "@/lib/prayer/types";
@@ -332,7 +333,8 @@ async function cmdPrayers(): Promise<string> {
       );
     }
     return lines.join("\n");
-  } catch {
+  } catch (error) {
+    logPrayerError("telegram /prayers", error);
     return "Could not load prayer times. Check Settings location.";
   }
 }

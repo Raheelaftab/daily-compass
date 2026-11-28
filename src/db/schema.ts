@@ -149,9 +149,9 @@ export const prayerSettings = pgTable("prayer_settings", {
   city: varchar("city", { length: 100 }).notNull().default("Timonium"),
   state: varchar("state", { length: 50 }).notNull().default("MD"),
   country: varchar("country", { length: 50 }).notNull().default("US"),
-  /** Optional lat/long override; when both set, timings-by-coords is used. */
-  latitude: varchar("latitude", { length: 20 }),
-  longitude: varchar("longitude", { length: 20 }),
+  /** Timonium, MD defaults; AlAdhan always uses coordinates (not city geocode). */
+  latitude: varchar("latitude", { length: 20 }).notNull().default("39.437"),
+  longitude: varchar("longitude", { length: 20 }).notNull().default("-76.62"),
   /** AlAdhan calculation method (2 = ISNA). */
   method: integer("method").notNull().default(2),
   /** AlAdhan Asr school: 0 = Shafi/Standard, 1 = Hanafi. */

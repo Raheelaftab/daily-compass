@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { prayerTimes } from "@/db/schema";
 import { addDays } from "@/lib/dates";
 import { fetchAlAdhanTimes } from "@/lib/prayer/aladhan";
+import { logPrayerError } from "@/lib/prayer/errors";
 import {
   getOrCreatePrayerSettings,
   type PrayerSettingsRow,
@@ -57,38 +58,49 @@ export async function ensurePrayerTimesForDate(
   }
 
   const locSettings = settings ?? (await getOrCreatePrayerSettings());
-  const times = await fetchAlAdhanTimes(
-    dateStr,
-    await locationFromSettings(locSettings),
-  );
-
-  const [inserted] = await db
-    .insert(prayerTimes)
-    .values({
-      prayerDate: dateStr,
-      fajr: times.fajr,
-      dhuhr: times.dhuhr,
-      asr: times.asr,
-      maghrib: times.maghrib,
-      isha: times.isha,
-    })
-    .onConflictDoNothing()
-    .returning();
-
-  if (inserted) {
-    return { prayerDate: dateStr, times: rowToTimes(inserted) };
+  let times: DayPrayerTimes;
+  try {
+    times = await fetchAlAdhanTimes(
+      dateStr,
+      await locationFromSettings(locSettings),
+    );
+  } catch (error) {
+    logPrayerError(`ensurePrayerTimesForDate(${dateStr}) AlAdhan`, error);
+    throw error;
   }
 
-  // Race: another request inserted first.
-  const [again] = await db
-    .select()
-    .from(prayerTimes)
-    .where(eq(prayerTimes.prayerDate, dateStr))
-    .limit(1);
-  if (!again) {
-    throw new Error(`Failed to cache prayer times for ${dateStr}`);
+  try {
+    const [inserted] = await db
+      .insert(prayerTimes)
+      .values({
+        prayerDate: dateStr,
+        fajr: times.fajr,
+        dhuhr: times.dhuhr,
+        asr: times.asr,
+        maghrib: times.maghrib,
+        isha: times.isha,
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    if (inserted) {
+      return { prayerDate: dateStr, times: rowToTimes(inserted) };
+    }
+
+    // Race: another request inserted first.
+    const [again] = await db
+      .select()
+      .from(prayerTimes)
+      .where(eq(prayerTimes.prayerDate, dateStr))
+      .limit(1);
+    if (!again) {
+      throw new Error(`Failed to cache prayer times for ${dateStr}`);
+    }
+    return { prayerDate: dateStr, times: rowToTimes(again) };
+  } catch (error) {
+    logPrayerError(`ensurePrayerTimesForDate(${dateStr}) cache`, error);
+    throw error;
   }
-  return { prayerDate: dateStr, times: rowToTimes(again) };
 }
 
 /** Today + next-day Fajr (needed for Isha cutoff). */

@@ -1,4 +1,5 @@
 import { addDays, todayStr } from "@/lib/dates";
+import { logPrayerError } from "@/lib/prayer/errors";
 import {
   claimReminderMinute,
   ensurePrayerLogsForDate,
@@ -146,65 +147,70 @@ async function processItem(input: {
 export async function runPrayerCronTick(
   now: Date = new Date(),
 ): Promise<PrayerCronResult> {
-  const date = todayStr();
-  const yesterday = addDays(date, -1);
-  const settings = await getOrCreatePrayerSettings();
-  const telegram = await getOrCreateTelegramSettings();
+  try {
+    const date = todayStr();
+    const yesterday = addDays(date, -1);
+    const settings = await getOrCreatePrayerSettings();
+    const telegram = await getOrCreateTelegramSettings();
 
-  const todayCached = await ensurePrayerTimesForDate(date, settings);
-  const tomorrowCached = await ensurePrayerTimesForDate(
-    addDays(date, 1),
-    settings,
-  );
-  const yesterdayCached = await ensurePrayerTimesForDate(yesterday, settings);
-
-  const todayLogs = await ensurePrayerLogsForDate(date);
-  await ensurePrayerLogsForDate(yesterday);
-
-  const work: WorkItem[] = todayLogs.map((log) => ({
-    prayerDate: date,
-    prayer: log.prayer,
-    log,
-    times: todayCached.times,
-    nextFajr: tomorrowCached.times.fajr,
-  }));
-
-  // Overnight Isha: still pending on yesterday until today's Fajr.
-  const yesterdayIsha = await getPrayerLog(yesterday, "isha");
-  if (yesterdayIsha && yesterdayIsha.status === "pending") {
-    work.push({
-      prayerDate: yesterday,
-      prayer: "isha",
-      log: yesterdayIsha,
-      times: yesterdayCached.times,
-      nextFajr: todayCached.times.fajr,
-    });
-  }
-
-  // Stable order: yesterday Isha first (if any), then today's prayers.
-  work.sort((a, b) => {
-    if (a.prayerDate !== b.prayerDate) {
-      return a.prayerDate < b.prayerDate ? -1 : 1;
-    }
-    return PRAYER_NAMES.indexOf(a.prayer) - PRAYER_NAMES.indexOf(b.prayer);
-  });
-
-  const currentMinute = minuteKey(now);
-  const reminded: PrayerName[] = [];
-  const missed: PrayerName[] = [];
-  let skipped = 0;
-
-  for (const item of work) {
-    skipped += await processItem({
-      item,
-      now,
-      currentMinute,
+    const todayCached = await ensurePrayerTimesForDate(date, settings);
+    const tomorrowCached = await ensurePrayerTimesForDate(
+      addDays(date, 1),
       settings,
-      chatId: telegram.chatId,
-      reminded,
-      missed,
-    });
-  }
+    );
+    const yesterdayCached = await ensurePrayerTimesForDate(yesterday, settings);
 
-  return { ok: true, date, reminded, missed, skipped };
+    const todayLogs = await ensurePrayerLogsForDate(date);
+    await ensurePrayerLogsForDate(yesterday);
+
+    const work: WorkItem[] = todayLogs.map((log) => ({
+      prayerDate: date,
+      prayer: log.prayer,
+      log,
+      times: todayCached.times,
+      nextFajr: tomorrowCached.times.fajr,
+    }));
+
+    // Overnight Isha: still pending on yesterday until today's Fajr.
+    const yesterdayIsha = await getPrayerLog(yesterday, "isha");
+    if (yesterdayIsha && yesterdayIsha.status === "pending") {
+      work.push({
+        prayerDate: yesterday,
+        prayer: "isha",
+        log: yesterdayIsha,
+        times: yesterdayCached.times,
+        nextFajr: todayCached.times.fajr,
+      });
+    }
+
+    // Stable order: yesterday Isha first (if any), then today's prayers.
+    work.sort((a, b) => {
+      if (a.prayerDate !== b.prayerDate) {
+        return a.prayerDate < b.prayerDate ? -1 : 1;
+      }
+      return PRAYER_NAMES.indexOf(a.prayer) - PRAYER_NAMES.indexOf(b.prayer);
+    });
+
+    const currentMinute = minuteKey(now);
+    const reminded: PrayerName[] = [];
+    const missed: PrayerName[] = [];
+    let skipped = 0;
+
+    for (const item of work) {
+      skipped += await processItem({
+        item,
+        now,
+        currentMinute,
+        settings,
+        chatId: telegram.chatId,
+        reminded,
+        missed,
+      });
+    }
+
+    return { ok: true, date, reminded, missed, skipped };
+  } catch (error) {
+    logPrayerError("runPrayerCronTick", error);
+    throw error;
+  }
 }

@@ -102,7 +102,7 @@ Cron schedules (UTC, Vercel Hobby): morning `0 13 * * *` → `/api/cron/morning`
 
 ## Prayer reminders (cron-job.org)
 
-Prayer times are fetched once per day from [AlAdhan](https://aladhan.com/prayer-times-api) (default: Timonium MD / US, method **ISNA** `2`, Asr school **Standard/Shafi** `0`; Hanafi is `1`) and cached. A minute cron sends Telegram reminders with ✅ Prayed / ⏰ snooze buttons. Configure location and per-prayer toggles in **Settings**.
+Prayer times are fetched once per day from [AlAdhan](https://aladhan.com/prayer-times-api) **by coordinates** (`/v1/timings/{DD-MM-YYYY}` with `timezonestring=America/New_York`; default lat/long **39.437 / -76.62** Timonium MD; method **ISNA** `2`; Asr **Standard/Shafi** `0`). City geocoding is not used. A minute cron sends Telegram reminders with ✅ Prayed / ⏰ snooze buttons. Configure coords and per-prayer toggles in **Settings**.
 
 1. Deploy so `https://<your-domain>/api/cron/prayer` is live and `CRON_SECRET` is set in Vercel.
 2. Pair the Telegram bot (see above) so reminders have a chat to send to.

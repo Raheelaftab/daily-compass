@@ -153,11 +153,15 @@ export const updatePrayerSettingsSchema = z.object({
   state: z.string().trim().min(1).max(50),
   country: z.string().trim().min(1).max(50),
   latitude: z
-    .union([z.literal(""), z.string().trim().max(20)])
-    .transform((value) => (value === "" ? null : value)),
+    .string()
+    .trim()
+    .min(1, "Latitude is required")
+    .max(20),
   longitude: z
-    .union([z.literal(""), z.string().trim().max(20)])
-    .transform((value) => (value === "" ? null : value)),
+    .string()
+    .trim()
+    .min(1, "Longitude is required")
+    .max(20),
   method: z.coerce.number().int().min(0).max(99),
   school: z.coerce.number().int().min(0).max(1),
   snoozeOptionAMinutes: z.coerce.number().int().min(1).max(180),

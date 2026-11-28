@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { runPrayerCronTick } from "@/lib/prayer/cron";
+import { logPrayerError } from "@/lib/prayer/errors";
 import { verifyCronBearer } from "@/lib/telegram/auth";
 
 async function handle(request: Request) {
@@ -11,8 +12,8 @@ async function handle(request: Request) {
   try {
     const result = await runPrayerCronTick();
     return NextResponse.json(result);
-  } catch {
-    // Do not log secrets or tokens.
+  } catch (error) {
+    logPrayerError("cron /api/cron/prayer", error);
     return NextResponse.json(
       { ok: false, error: "Prayer cron failed" },
       { status: 500 },
